@@ -2,8 +2,12 @@ archived/taxi.csv
 archived/covid-19-data
 archived/ecg-spider-clip
 
+cabspottingdata/trajectory.pkl
+
 ptb-xl/records100/*
 !ptb-xl/records100/00000
 ptb-xl/records500/*
 
 *.swp
+info.log
+__pycache__

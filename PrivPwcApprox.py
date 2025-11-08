@@ -31,96 +31,106 @@ class PrivatePiecewiseApprox:
 
         self.params = []
         for i in range(len(breakpoints)-1):
-            if basis_type == 'Sinc':
-                self.params.append({'l': breakpoints[i], 'r': breakpoints[i+1], 'k': -1})
+            self.params.append([])
             for k in range(degree+1):
-                self.params.append({'l': breakpoints[i], 'r': breakpoints[i+1], 'k': k})
+                self.params[-1].append({'l': breakpoints[i], 'r': breakpoints[i+1], 'k': k})
                 if basis_type == 'Fourier' and k > 0:
-                    self.params.append({'l': breakpoints[i], 'r': breakpoints[i+1], 'k': -k})
+                    self.params[-1].append({'l': breakpoints[i], 'r': breakpoints[i+1], 'k': -k})
 
         if basis_type == 'Polynomial':
-            self.basis = lambda i, x: np.where(
-                (x >= self.params[i]['l']) & ((x < self.params[i]['r']) | ((self.params[i]['r'] == self.r) & (x == self.r))), 
-                np.sqrt((2*self.params[i]['k']+1)/2) * 
-                1/np.sqrt(((self.params[i]['r']-self.params[i]['l'])/2)**(2*self.params[i]['k']+1)) * 
-                ((x-(self.params[i]['l']+self.params[i]['r'])/2)**self.params[i]['k']), 
+            self.basis = lambda i, j, x: np.where(
+                (x >= self.params[i][j]['l']) & ((x < self.params[i][j]['r']) | ((self.params[i][j]['r'] == self.r) & (x == self.r))), 
+                np.sqrt((2*self.params[i][j]['k']+1)/2) * 
+                1/np.sqrt(((self.params[i][j]['r']-self.params[i][j]['l'])/2)**(2*self.params[i][j]['k']+1)) * 
+                ((x-(self.params[i][j]['l']+self.params[i][j]['r'])/2)**self.params[i][j]['k']), 
                 0)
         elif basis_type == 'Fourier':
-            self.basis = lambda i, x: np.where(
-                (x >= self.params[i]['l']) & ((x < self.params[i]['r']) | ((self.params[i]['r'] == self.r) & (x == self.r))), 
-                (self.params[i]['k'] == 0) * 1 +
-                (self.params[i]['k'] > 0) * np.sin(2*np.pi*self.params[i]['k']*(x-(self.params[i]['l']+self.params[i]['r'])/2)) + 
-                (self.params[i]['k'] < 0) * np.cos(-2*np.pi*self.params[i]['k']*(x-(self.params[i]['l']+self.params[i]['r'])/2)), 
+            self.basis = lambda i, j, x: np.where(
+                (x >= self.params[i][j]['l']) & ((x < self.params[i][j]['r']) | ((self.params[i][j]['r'] == self.r) & (x == self.r))), 
+                (self.params[i][j]['k'] == 0) * 1 +
+                (self.params[i][j]['k'] > 0) * np.sin(2*np.pi*self.params[i][j]['k']*(x-(self.params[i][j]['l']+self.params[i][j]['r'])/2)) + 
+                (self.params[i][j]['k'] < 0) * np.cos(-2*np.pi*self.params[i][j]['k']*(x-(self.params[i][j]['l']+self.params[i][j]['r'])/2)), 
                 0)
-        elif basis_type == 'Sinc':
-            self.basis = lambda i, x: np.where(
-                (x >= self.params[i]['l']) & ((x < self.params[i]['r']) | ((self.params[i]['r'] == self.r) & (x == self.r))), 
-                (self.params[i]['k'] == -1) * 1 + 
-                (self.params[i]['k'] >= 0) * np.sinc(x-self.params[i]['l']-self.params[i]['k']), 
+        elif basis_type == 'Sinc' or basis_type == 'Sinc-unbounded':
+            self.basis = lambda i, j, x: np.where(
+                (x >= self.params[i][j]['l']) & ((x < self.params[i][j]['r']) | ((self.params[i][j]['r'] == self.r) & (x == self.r))), 
+                np.sinc(x-self.params[i][j]['l']-self.params[i][j]['k']), 
                 0)
         else:
             logging.error(f"ERR: no such basis '{basis_type}'.")
 
-        self.d = len(self.params)
-        if basis_type == "Polynomial" and degree == 1:
+        self.m = len(breakpoints)-1     # m pieces in total
+        self.d = len(self.params[0])    # each piece has d basis functions
+        if basis_type == 'Polynomial' and degree == 1:
+            self.isOrthonormal = True
+        elif basis_type == 'Sinc-unbounded':
             self.isOrthonormal = True
         else:
-            self.G = np.zeros((self.d, self.d))
-            for i in range(self.d):
-                for j in range(self.d):
-                    l_max = max(self.params[i]['l'], self.params[j]['l'])
-                    r_min = min(self.params[i]['r'], self.params[j]['r'])
-                    if l_max <= r_min:
-                        integrand = lambda x: self.basis(i, x)*self.basis(j, x)
-                        self.G[i,j], _ = quad(integrand, l_max, r_min, limit = INTLIM_PER_PIECE)
-                    else:
-                        self.G[i,j] = 0
-            self.invG = pinv(self.G)
-            # np.set_printoptions(precision = 4, linewidth = 100, suppress = True)
-            # logging.info("G = \n%s", self.G)
-            # logging.info("inv(G) = \n%s", self.invG)
-            if np.any(np.linalg.eigvals(self.G) < -1e-8):
-                logging.error("ERR: the pairwise inner product matrix is not SPSD!")
+            self.G = np.zeros((self.m, self.d, self.d))
+            self.invG = np.zeros((self.m, self.d, self.d))
+            for i in range(len(self.breakpoints)-1):
+                for j1 in range(self.d):
+                    for j2 in range(self.d):
+                        l = self.params[i][j1]['l']
+                        r = self.params[i][j1]['r']
+                        if l != self.params[i][j2]['l'] or r != self.params[i][j2]['r']:
+                            logging.error("ERR: basis functions on the same piece have different endpoints!")
+                        integrand = lambda x: self.basis(i, j1, x)*self.basis(i, j2, x)
+                        self.G[i, j1, j2], _ = quad(integrand, l, r, limit = INTLIM_PER_PIECE)
+                self.invG[i] = pinv(self.G[i])
+                # np.set_printoptions(precision = 4, linewidth = 100, suppress = True)
+                # logging.info("G = \n%s", self.G[i])
+                # logging.info("inv(G) = \n%s", self.invG[i])
+                if np.any(np.linalg.eigvals(self.G[i]) < -1e-8):
+                    logging.error("ERR: the pairwise inner product matrix is not SPSD!")
         
     def solve(self, func, eps = 0.5, method = 'Laplace'):
-        b = np.zeros(self.d)
-        for i in range(self.d):
-            integrand = lambda x: func(x)*self.basis(i, x)
-            b[i], _ = quad(integrand, self.params[i]['l'], self.params[i]['r'], limit = INTLIM_PER_PIECE)
+        b = np.zeros((self.m, self.d))
+        for i in range(self.m):
+            for j in range(self.d):
+                integrand = lambda x: func(x)*self.basis(i, j, x)
+                b[i, j], _ = quad(integrand, self.params[i][j]['l'], self.params[i][j]['r'], limit = INTLIM_PER_PIECE)
         if self.isOrthonormal:
             coeff = b
         else:
-            coeff = self.invG@b
+            coeff = np.zeros((self.m, self.d))
+            for i in range(self.m):
+                coeff[i] = self.invG[i]@b[i]
         # logging.info("b = %s", b)
         # logging.info("c = %s", coeff)
         
         def approx(x):
             ret = 0
-            for i, c in enumerate(coeff):
-                ret += c*self.basis(i, x)
+            for i in range(self.m):
+                for j in range(self.d):
+                    ret += coeff[i, j]*self.basis(i, j, x)
             return ret
 
         if method == None:
-            noise = np.zeros(self.d)
+            noise = np.zeros((self.m, self.d))
         elif method == 'Laplace':
-            noise = np.random.randn(self.d)
+            noise = np.random.randn(self.m*self.d)
             noise = noise/np.linalg.norm(noise)
-            noise = gamma.rvs(a = self.d, scale = 1/eps)*noise
+            noise = noise.reshape(self.m, self.d)
+            noise *= gamma.rvs(a = self.m*self.d, scale = 1/eps)
             if not self.isOrthonormal:
-                noise = (sqrtm(self.invG)@noise).real
+                for i in range(self.m):
+                    noise[i] = (sqrtm(self.invG[i])@noise[i]).real
         elif method == 'Normal':
-            noise = np.random.normal(0, 1, (self.d,))
+            noise = np.random.randn(self.m*self.d)
+            noise = noise.reshape(self.m, self.d)
             if not self.isOrthonormal:
-                noise = (sqrtm(self.invG)@noise).real
-            noise = noise/np.sqrt(2*eps)
+                noise[i] = (sqrtm(self.invG[i])@noise[i]).real
+            noise /= np.sqrt(2*eps)
         else:
             logging.error(f"ERR: no such method '{method}'.")
         # logging.info("noise = %s", noise)
 
         def priv_approx(x):
             ret = 0
-            for i in range(self.d):
-                ret += (coeff[i]+noise[i])*self.basis(i, x)
+            for i in range(self.m):
+                for j in range(self.d):
+                    ret += (coeff[i, j]+noise[i, j])*self.basis(i, j, x)
             return ret
 
         return approx, priv_approx
