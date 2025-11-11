@@ -30,14 +30,19 @@ class PrivatePiecewiseApprox:
         self.isOrthonormal = False
 
         self.basis = []
+        self.basis_scalar = []
         for i in range(len(breakpoints)-1):
             self.basis.append([])
+            self.basis_scalar.append([])
             for k in range(degree+1):
-                self.basis[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], k))
                 if basis_type == 'Linear-2D':
+                    self.basis[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], k, 0))
                     self.basis[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], k, 1))
-                if basis_type == 'Fourier' and k > 0:
-                    self.basis[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], -k))
+                    self.basis_scalar[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], k, 2))
+                else:
+                    self.basis[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], k))
+                    if basis_type == 'Fourier' and k > 0:
+                        self.basis[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], -k))
         
         self.m = len(breakpoints)-1     # m pieces in total
         self.d = len(self.basis[0])    # each piece has d basis functions
@@ -79,10 +84,14 @@ class PrivatePiecewiseApprox:
                 return lambda x: np.array([1/np.sqrt(r-l), 0])
             elif k == 0 and dim == 1:
                 return lambda x: np.array([0, 1/np.sqrt(r-l)])
+            elif k == 0 and dim == 2:   # scalar func
+                return lambda x: 1/np.sqrt(r-l)
             elif k == 1 and dim == 0:
                 return lambda x: np.array([np.sqrt(12/((r-l)**3))*(x-(l+r)/2), 0])
             elif k == 1 and dim == 1:
                 return lambda x: np.array([0, np.sqrt(12/((r-l)**3))*(x-(l+r)/2)])
+            elif k == 1 and dim == 2:   # scalar func
+                return lambda x: np.sqrt(12/((r-l)**3))*(x-(l+r)/2)
             else:
                 logging.error(f"ERR: linear 2D basis param 'k = {k}, dim = {dim}' not valid.")
         elif self.basis_type == 'Fourier':
@@ -97,16 +106,22 @@ class PrivatePiecewiseApprox:
         else:
             logging.error(f"ERR: no such basis '{self.basis_type}'.")
 
-    def solve(self, func, eps = 0.5, method = 'Laplace'):
+    def solve(self, func, eps = 0.5, method = 'Laplace', func_2D = None):
         self.func = func
         self.eps = eps
         self.method = method
 
-        integrand = lambda x: func(x)**2
         if self.basis_type == 'Linear-2D':
-            integral_vec, _ = quad_vec(integrand, self.l, self.r, limit = INTLIM)
-            self.funcSqrInt = np.sum(integral_vec)
+            integrand_x = lambda t: func_2D[0](t)**2
+            integrand_y = lambda t: func_2D[1](t)**2
+            integral_x, _ = quad(integrand_x, self.l, self.r, limit = INTLIM)
+            integral_y, _ = quad(integrand_y, self.l, self.r, limit = INTLIM)
+            self.funcSqrInt = integral_x+integral_y
+            # integrand = lambda x: func(x)**2
+            # integral_vec, _ = quad_vec(integrand, self.l, self.r, limit = INTLIM)
+            # self.funcSqrInt = np.sum(integral_vec)
         else:
+            integrand = lambda x: func(x)**2
             self.funcSqrInt, _ = quad(integrand, self.l, self.r, limit = INTLIM)
 
         self.b = np.zeros((self.m, self.d))
@@ -114,11 +129,21 @@ class PrivatePiecewiseApprox:
             for j in range(self.d):
                 l = self.breakpoints[i]
                 r = self.breakpoints[i+1]
-                integrand = lambda x: func(x)*self.basis[i][j](x)
                 if self.basis_type == 'Linear-2D':
-                    integral_vec, _ = quad_vec(integrand, l, r, limit = INTLIM_PER_PIECE)
-                    self.b[i, j] = np.sum(integral_vec)
+                    integrand = lambda t: func_2D[j%2](t)*self.basis_scalar[i][j//2](t)
+                    self.b[i, j], _ = quad(integrand, l, r, limit = INTLIM_PER_PIECE)
+                    # Alt approach 1: use separate quad, but with 2D func and basis, slower than above
+                    ## integrand_x = lambda t: func(t)[0]*self.basis[i][j](t)[0]
+                    ## integrand_y = lambda t: func(t)[1]*self.basis[i][j](t)[1]
+                    ## integral_x, _ = quad(integrand_x, l, r, limit = INTLIM_PER_PIECE)
+                    ## integral_y, _ = quad(integrand_y, l, r, limit = INTLIM_PER_PIECE)
+                    ## self.b[i, j] = integral_x+integral_y
+                    # Alt approch 2: use quad_vec, very slow
+                    ## integrand = lambda x: func(x)*self.basis[i][j](x)
+                    ## integral_vec, _ = quad_vec(integrand, l, r, limit = INTLIM_PER_PIECE)
+                    ## self.b[i, j] = np.sum(integral_vec)
                 else:
+                    integrand = lambda x: func(x)*self.basis[i][j](x)
                     self.b[i, j], _ = quad(integrand, l, r, limit = INTLIM_PER_PIECE)
         if self.isOrthonormal:
             self.coeff = self.b

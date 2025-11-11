@@ -1,0 +1,95 @@
+# Taxi Trajectory
+
+## 100 datapoints
+
+PS D:\Function-Privatization-under-GP> py .\TaxiTrajectory.py
+==================================================
+Datasets loaded in 0.81567 sec.
+Total # of datapoints: 11103894
+==================================================
+Approximate & privatize each coordinate separately? (Y/n)       y
+Dataset #1 batch #1 done. Executed in 1.84307 sec.
+        ||f-f_approx|| = 41072.42316; ||f_approx-f_priv|| = 108.50480; ||f-f_priv|| = 41072.56648.
+Total time elapsed: 1.84333 sec.
+
+PS D:\Function-Privatization-under-GP> py .\TaxiTrajectory.py
+==================================================
+Datasets loaded in 0.80659 sec.
+Total # of datapoints: 11103894
+==================================================
+Approximate & privatize each coordinate separately? (Y/n)       n
+Dataset #1 batch #1 done. Executed in 2.25668 sec.
+        ||f-f_approx|| = 13296.48513; ||f_approx-f_priv|| = 179.46707; ||f-f_priv|| = 13297.69624.
+Total time elapsed: 2.25684 sec.
+
+
+## 1000 datapoints
+
+PS D:\Function-Privatization-under-GP> py .\TaxiTrajectory.py
+==================================================
+Datasets loaded in 0.79223 sec.
+Total # of datapoints: 11103894
+==================================================
+Approximate & privatize each coordinate separately? (Y/n)       n
+Dataset #1 batch #1 done. Executed in 70.15659 sec.
+        ||f-f_approx|| = 82145.66054; ||f_approx-f_priv|| = 714.26474; ||f-f_priv|| = 82148.76578.
+Total time elapsed: 70.15713 sec.
+
+
+
+
+
+# ECG
+
+# Unbounded
+
+PS D:\Function-Privatization-under-GP> py .\ECG.py
+==================================================
+Record loaded in 0.00328 sec.
+1000 datapoints, sampled at frequency 100 Hz.
+==================================================
+Allow unbounded basis function? (Y/n)   y
+Inner product matrix preprocessed in 0.00067 sec.
+Total time elapsed: 54.07722 sec.
+D:\Function-Privatization-under-GP\PrivPwcApprox.py:232: RuntimeWarning: invalid value encountered in sqrt
+  return np.sqrt(err)
+||f-f_approx|| = nan; ||f_approx-f_priv|| = 839.14073; ||f-f_priv|| = 782.66899.
+
+
+# Bounded, 4x200
+
+PS D:\Function-Privatization-under-GP> py .\ECG.py
+==================================================
+Record loaded in 0.00358 sec.
+1000 datapoints, sampled at frequency 100 Hz.
+==================================================
+Allow unbounded basis function? (Y/n)   n
+Inner product matrix preprocessed in 1.59116 sec.
+Total time elapsed: 8.32347 sec.
+||f-f_approx|| = 132.00601; ||f_approx-f_priv|| = 1020.82854; ||f-f_priv|| = 1029.32818.
+
+
+# Bounded, 8x100
+
+PS D:\Function-Privatization-under-GP> py .\ECG.py
+==================================================
+Record loaded in 0.00334 sec.
+1000 datapoints, sampled at frequency 100 Hz.
+==================================================
+Allow unbounded basis function? (Y/n)   n
+Inner product matrix preprocessed in 5.83268 sec.
+Total time elapsed: 16.57737 sec.
+||f-f_approx|| = 112.22379; ||f_approx-f_priv|| = 951.69581; ||f-f_priv|| = 958.28968.
+
+
+# Bounded, 16x50
+
+PS D:\Function-Privatization-under-GP> py .\ECG.py
+==================================================
+Record loaded in 0.00600 sec.
+1000 datapoints, sampled at frequency 100 Hz.
+==================================================
+Allow unbounded basis function? (Y/n)   n
+Inner product matrix preprocessed in 23.12710 sec.
+Total time elapsed: 35.73815 sec.
+||f-f_approx|| = 115.70461; ||f_approx-f_priv|| = 859.32746; ||f-f_priv|| = 867.08202.

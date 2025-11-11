@@ -1,7 +1,7 @@
 import wfdb
 from PrivPwcApprox import *
 
-BATCH_SIZE = 20
+BATCH_SIZE = 10
 TIME_SCALE = 80
 VAL_SCALE = 1000
 
@@ -29,7 +29,13 @@ while mode not in ["Y", "y", "N", "n"]:
 if mode == "Y" or mode == "y":
     timer = time.time()
     INTLIM_PER_PIECE = INTLIM
-    solver = PrivatePiecewiseApprox((t[0], T), [t[0], T], 'Sinc-unbounded', n)
+    solver = PrivatePiecewiseApprox((t[0], T), [t[0], T], 'Sinc-unbounded', T)
+    # this is slow because for each basis, we need to compute its integral with func on [t[0], T]
+    # the overhead of integartion (espcially on func that is not smooth) is very large
+    # also note that splitting into intervals and use unbounded sinc (as below) will give wrong answers
+    # because this will only integrate func and basis on one interval, but basis should be unbounded
+    # breakpoints = np.linspace(t[0], T, n//BATCH_SIZE)
+    # solver = PrivatePiecewiseApprox((t[0], T), breakpoints, 'Sinc-unbounded', BATCH_SIZE*TIME_SCALE//record.fs)
 else:
     timer = time.time()
     breakpoints = np.linspace(t[0], T, n//BATCH_SIZE)
@@ -44,7 +50,7 @@ dense_t = np.linspace(0, T, 10*n+1)
 plt.plot(dense_t/TIME_SCALE, approx(dense_t)/VAL_SCALE, color = 'red')
 plt.plot(dense_t/TIME_SCALE, priv(dense_t)/VAL_SCALE, color = 'blue')
 print(f"Total time elapsed: {time.time()-timer:.5f} sec.")
-print(f"||f-f_approx|| = {solver.eval(type = 'Approx'):.5f};", end = " ")
+print(f"||f-f_approx|| = {solver.eval('Approx'):.5f};", end = " ")
 print(f"||f_approx-f_priv|| = {solver.evalPrivLoss():.5f};", end = " ")
-print(f"||f-f_priv|| = {solver.eval(type = 'Priv'):.5f}.")
+print(f"||f-f_priv|| = {solver.eval('Priv'):.5f}.")
 plt.show()
