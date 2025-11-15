@@ -1,13 +1,9 @@
 from PrivPwcApprox import *
 from AdaptApprox import *
-from ast import literal_eval
 
-UNIT = 1000
-EARTH_RADIUS = 6371*UNIT
-SPEED_LIMIT = 180*UNIT/60/60
-
-BATCH_SIZE = 1000
-SVT_THRESHOLD_SCALE = 200
+EPS = 0.01
+BATCH_SIZE = 100
+SVT_THRESHOLD_SCALE = 2
 
 timer = time.time()
 df = pd.read_pickle("cabspottingdata/trajectory.pkl")
@@ -27,6 +23,7 @@ for i in range(1):
     # for j in range(len(df['t'][i])//BATCH_SIZE):
     for j in range(1):
         t = df['t'][i][j*BATCH_SIZE:(j+1)*BATCH_SIZE]
+        t = [(cur-t[0]).seconds for cur in t]
         x = df['x'][i][j*BATCH_SIZE:(j+1)*BATCH_SIZE]
         y = df['y'][i][j*BATCH_SIZE:(j+1)*BATCH_SIZE]
         min_x = np.min(x); x -= min_x
@@ -35,9 +32,9 @@ for i in range(1):
             func_x = time_series_func(t, x)
             func_y = time_series_func(t, y)
             solver_x = adaptive_poly_approx(func = func_x, interval = (t[0], t[-1]), degree = 1, 
-                                            eps = 0.5, SVT_threshold_scale = SVT_THRESHOLD_SCALE)
+                                            eps = EPS/2, SVT_threshold_scale = SVT_THRESHOLD_SCALE)
             solver_y = adaptive_poly_approx(func = func_y, interval = (t[0], t[-1]), degree = 1, 
-                                            eps = 0.5, SVT_threshold_scale = SVT_THRESHOLD_SCALE)
+                                            eps = EPS/2, SVT_threshold_scale = SVT_THRESHOLD_SCALE)
             approx_x = solver_x.createApprox()
             priv_x = solver_x.createPriv()
             approx_y = solver_y.createApprox()
@@ -51,7 +48,7 @@ for i in range(1):
         else:
             func = time_series_func_2D(t, x, y)
             solver = adaptive_poly_approx(func = func, interval = (t[0], t[-1]), 
-                                          basis = 'Linear-2D', degree = 1, eps = 1, 
+                                          basis = 'Linear-2D', degree = 1, eps = EPS, 
                                           func_2D = (time_series_func(t, x), time_series_func(t, y)), 
                                           SVT_threshold_scale = SVT_THRESHOLD_SCALE)
             approx = solver.createApprox()(t)

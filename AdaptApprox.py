@@ -1,5 +1,9 @@
 from PrivPwcApprox import *
 
+logging.getLogger('matplotlib.pyplot').disabled = True
+logging.getLogger('matplotlib.font_manager').disabled = True
+logging.basicConfig(filename = 'info.log', filemode = 'w', level = logging.INFO)
+
 def reduce_seg(func, interval, basis, degree, k0, k, total_eps, eps, beta, func_2D = None):
     if k == 0:
         return np.array(interval), total_eps
