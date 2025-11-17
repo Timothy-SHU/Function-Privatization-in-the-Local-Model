@@ -25,11 +25,8 @@ warnings.simplefilter("ignore", category = IntegrationWarning)      # ignore int
 INTLIM = 1000
 INTLIM_PER_PIECE = 100
 
-parallel = True
-# parallel = False
-
 class PrivatePiecewiseApprox:
-    def __init__(self, interval, breakpoints, basis_type = 'Polynomial', degree = 1):
+    def __init__(self, interval, breakpoints, basis_type = 'Polynomial', degree = 1, parallel = False):
         self.degree = degree
         self.l, self.r = np.float64(interval)
         self.breakpoints = breakpoints
@@ -62,19 +59,34 @@ class PrivatePiecewiseApprox:
         else:
             self.G = np.zeros((self.m, self.d, self.d))
             self.invG = np.zeros((self.m, self.d, self.d))
-            for i in range(self.m):
-                for j1 in range(self.d):
-                    for j2 in range(self.d):
-                        l = breakpoints[i]
-                        r = breakpoints[i+1]
-                        integrand = lambda x: self.basis[i][j1](x)*self.basis[i][j2](x)
-                        self.G[i, j1, j2], _ = quad(integrand, l, r, limit = INTLIM_PER_PIECE)
-                self.invG[i] = pinv(self.G[i])
-                # np.set_printoptions(precision = 4, linewidth = 100, suppress = True)
-                # logging.info("G = \n%s", self.G[i])
-                # logging.info("inv(G) = \n%s", self.invG[i])
-                if np.any(np.linalg.eigvals(self.G[i]) < -1e-8):
-                    logging.error("ERR: the pairwise inner product matrix is not SPSD!")
+            if not parallel:
+                for i in range(self.m):
+                    for j1 in range(self.d):
+                        for j2 in range(self.d):
+                            l = breakpoints[i]
+                            r = breakpoints[i+1]
+                            integrand = lambda x: self.basis[i][j1](x)*self.basis[i][j2](x)
+                            self.G[i, j1, j2], _ = quad(integrand, l, r, limit = INTLIM_PER_PIECE)
+                    self.invG[i] = pinv(self.G[i])
+                    # np.set_printoptions(precision = 4, linewidth = 100, suppress = True)
+                    # logging.info("G = \n%s", self.G[i])
+                    # logging.info("inv(G) = \n%s", self.invG[i])
+                    # if np.any(np.linalg.eigvals(self.G[i]) < -1e-8):
+                    #     logging.error("ERR: the pairwise inner product matrix is not SPSD!")
+            else:
+                tasks = []
+                for i in range(self.m):
+                    for j1 in range(self.d):
+                        for j2 in range(self.d):
+                            l = breakpoints[i]
+                            r = breakpoints[i+1]
+                            tasks.append((i, j1, j2, self._get_basis_integrand(i, j1, j2), l, r))
+                with ProcessingPool() as pool:
+                    results = pool.map(self._basis_integrate_task, tasks)
+                for i, j1, j2, integral in results:
+                    self.G[i, j1, j2] = integral
+                for i in range(self.m):
+                    self.invG[i] = pinv(self.G[i])
     
     def createBasis(self, l, r, k, dim = 0):
         if self.basis_type == 'Polynomial':
@@ -113,15 +125,20 @@ class PrivatePiecewiseApprox:
         else:
             logging.error(f"ERR: no such basis '{self.basis_type}'.")
 
-    def _get_integrand(self, i, j):
+    def _get_basis_integrand(self, i, j1, j2):
+        return lambda x: self.basis[i][j1](x)*self.basis[i][j2](x)
+    def _basis_integrate_task(self, task):
+        integral, _ = quad(task[3], task[4], task[5], limit = INTLIM_PER_PIECE)
+        return (task[0], task[1], task[2], integral)
+    def _get_fit_integrand(self, i, j):
         if self.basis_type == 'Linear-2D':
             return lambda t: self.func_2D[j%2](t)*self.basis_scalar[i][j//2](t)
         return lambda x: self.func(x)*self.basis[i][j](x)
-    def _integration_task(self, task):
+    def _fit_integrate_task(self, task):
         integral, _ = quad(task[2], task[3], task[4], limit = INTLIM_PER_PIECE)
         return (task[0], task[1], integral)
 
-    def fit(self, func, func_2D = None):
+    def fit(self, func, func_2D = None, parallel = False):
         self.func = func
         self.func_2D = func_2D
         self.eps = 0
@@ -169,9 +186,9 @@ class PrivatePiecewiseApprox:
                 for j in range(self.d):
                     l = self.breakpoints[i]
                     r = self.breakpoints[i+1]
-                    tasks.append((i, j, self._get_integrand(i, j), l, r))
+                    tasks.append((i, j, self._get_fit_integrand(i, j), l, r))
             with ProcessingPool() as pool:
-                results = pool.map(self._integration_task, tasks)
+                results = pool.map(self._fit_integrate_task, tasks)
             for i, j, integral in results:
                 self.b[i, j] = integral
 
@@ -305,7 +322,7 @@ def plot_1D_1D(solver):
     err_priv = solver.eval('Priv')
     plt.plot(x_plot, y_true, 'k-', linewidth = 2, label = 'Func')
     plt.plot(x_plot, y_approx, 'r--', linewidth = 1.5, label = 'Approx')
-    plt.plot(x_plot, y_priv, 'b--', linewidth = 1.5, label = f'Priv Approx')
+    plt.plot(x_plot, y_priv, 'b--', linewidth = 1.5, label = 'Priv Approx')
     plt.title(f"{solver.basis_type} basis, degree = {solver.degree}, error: {err_priv:.5f} ({err_ls:.5f})")
     plt.legend(loc = 'upper left')
     plt.grid(True)
