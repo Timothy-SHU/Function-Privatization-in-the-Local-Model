@@ -9,8 +9,8 @@ def reduce_seg(func, interval, basis, degree, k0, k, total_eps, eps, beta, func_
         return np.array(interval), total_eps
     breakpoints = np.linspace(interval[0], interval[1], (2**k)+1)
     solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree)
-    solver.solve(func, 0, method = None, func_2D = func_2D)
-    err = solver.eval()
+    solver.fit(func, func_2D)
+    err = solver.eval('Approx')
     noise = laplace.rvs(scale = 1/eps)
     total_eps = total_eps-eps
     logging.info(f"ReduceSeg at interval {interval} with breakpoints {breakpoints}:\n"+
@@ -27,7 +27,7 @@ def reduce_seg(func, interval, basis, degree, k0, k, total_eps, eps, beta, func_
             breakpoints = np.concatenate((l_pts[:-1], r_pts))
     return breakpoints, total_eps
 
-def adaptive_poly_approx(func, interval, basis = 'Polynomial', degree = 1, 
+def adaptive_approx(func, interval, basis = 'Polynomial', degree = 1, 
                          eps = 1, beta = 0.1, method = 'Laplace', 
                          func_2D = None, SVT_threshold_scale = 1):
     logging.info("="*100)
@@ -38,7 +38,7 @@ def adaptive_poly_approx(func, interval, basis = 'Polynomial', degree = 1,
     while True:
         breakpoints = np.linspace(interval[0], interval[1], (2**k_bar)+1)
         solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree)
-        solver.solve(func, 0, method = None, func_2D = func_2D)
+        solver.fit(func, func_2D)
         v = laplace.rvs(scale = 12/eps)
         tau = (2**k_bar)*4/eps
         err = solver.eval()
@@ -50,10 +50,9 @@ def adaptive_poly_approx(func, interval, basis = 'Polynomial', degree = 1,
     logging.info("-"*100)
 
     B = 3*eps/4
-    breakpoints = np.linspace(interval[0], interval[1], (2**k_bar)+1)
     """
     k0 = min(k_bar-2, 4)
-    if k0 < 1:
+    if k0 == 1:
         breakpoints = np.linspace(interval[0], interval[1], (2**k_bar)+1)
     else:
         # recursively merge pieces in subintervals
@@ -64,12 +63,13 @@ def adaptive_poly_approx(func, interval, basis = 'Polynomial', degree = 1,
             pts, B = reduce_seg(func, (interval[0]+(interval[1]-interval[0])*i/4, interval[0]+(interval[1]-interval[0])*(i+1)/4), 
                                 basis, degree, k0, k_bar-2, B, eps/32, beta, func_2D = func_2D)
             breakpoints = np.concatenate((breakpoints[:-1], pts))
-    """
     logging.info(f"Final breakpoints: {breakpoints}, remaining eps = {B:.5f}.")
     logging.info("-"*100)
 
     solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree)
-    solver.solve(func, B, method = method, func_2D = func_2D)
+    solver.fit(func, func_2D)
+    """
+    solver.privatize(B, method)
     logging.info(f"Polynomial approximation (eps = {B:.5f}, degree {solver.degree}):")
     logging.info(f"\tbreakpoints: {solver.breakpoints}.")
     # logging.info(f"\t||f-f_approx||: {solver.eval('Approx')}; ||f-f_priv||: {solver.eval('Priv')}.")

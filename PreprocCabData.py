@@ -33,7 +33,7 @@ for filename in sorted(os.listdir("cabspottingdata")):
             else:
                 delta_x = x-x_list[-1][-1]
                 delta_y = y-y_list[-1][-1]
-                delta_t = (t-t_list[-1][-1]).seconds
+                delta_t = (t-t_list[-1][-1]).total_seconds()
                 if np.sqrt(delta_x**2+delta_y**2) <= delta_t*SPEED_LIMIT:
                     x_list[-1].append(x)
                     y_list[-1].append(y)

@@ -11,6 +11,10 @@ from scipy.integrate import quad, quad_vec, IntegrationWarning
 import matplotlib.pyplot as plt
 from matplotlib.image import NonUniformImage
 
+from functools import partial
+from multiprocessing import cpu_count, Pool
+from pathos.multiprocessing import ProcessingPool
+
 import logging
 import warnings
 logging.getLogger('matplotlib.pyplot').disabled = True
@@ -20,6 +24,9 @@ warnings.simplefilter("ignore", category = IntegrationWarning)      # ignore int
 
 INTLIM = 1000
 INTLIM_PER_PIECE = 100
+
+parallel = True
+# parallel = False
 
 class PrivatePiecewiseApprox:
     def __init__(self, interval, breakpoints, basis_type = 'Polynomial', degree = 1):
@@ -106,11 +113,21 @@ class PrivatePiecewiseApprox:
         else:
             logging.error(f"ERR: no such basis '{self.basis_type}'.")
 
-    def solve(self, func, eps = 0.5, method = 'Laplace', func_2D = None):
-        self.func = func
-        self.eps = eps
-        self.method = method
+    def _get_integrand(self, i, j):
+        if self.basis_type == 'Linear-2D':
+            return lambda t: self.func_2D[j%2](t)*self.basis_scalar[i][j//2](t)
+        return lambda x: self.func(x)*self.basis[i][j](x)
+    def _integration_task(self, task):
+        integral, _ = quad(task[2], task[3], task[4], limit = INTLIM_PER_PIECE)
+        return (task[0], task[1], integral)
 
+    def fit(self, func, func_2D = None):
+        self.func = func
+        self.func_2D = func_2D
+        self.eps = 0
+        self.method = None
+        self.noise = np.zeros((self.m, self.d))
+        
         if self.basis_type == 'Linear-2D':
             integrand_x = lambda t: func_2D[0](t)**2
             integrand_y = lambda t: func_2D[1](t)**2
@@ -125,26 +142,39 @@ class PrivatePiecewiseApprox:
             self.funcSqrInt, _ = quad(integrand, self.l, self.r, limit = INTLIM)
 
         self.b = np.zeros((self.m, self.d))
-        for i in range(self.m):
-            for j in range(self.d):
-                l = self.breakpoints[i]
-                r = self.breakpoints[i+1]
-                if self.basis_type == 'Linear-2D':
-                    integrand = lambda t: func_2D[j%2](t)*self.basis_scalar[i][j//2](t)
-                    self.b[i, j], _ = quad(integrand, l, r, limit = INTLIM_PER_PIECE)
-                    # Alt approach 1: use separate quad, but with 2D func and basis, slower than above
-                    ## integrand_x = lambda t: func(t)[0]*self.basis[i][j](t)[0]
-                    ## integrand_y = lambda t: func(t)[1]*self.basis[i][j](t)[1]
-                    ## integral_x, _ = quad(integrand_x, l, r, limit = INTLIM_PER_PIECE)
-                    ## integral_y, _ = quad(integrand_y, l, r, limit = INTLIM_PER_PIECE)
-                    ## self.b[i, j] = integral_x+integral_y
-                    # Alt approch 2: use quad_vec, very slow
-                    ## integrand = lambda x: func(x)*self.basis[i][j](x)
-                    ## integral_vec, _ = quad_vec(integrand, l, r, limit = INTLIM_PER_PIECE)
-                    ## self.b[i, j] = np.sum(integral_vec)
-                else:
-                    integrand = lambda x: func(x)*self.basis[i][j](x)
-                    self.b[i, j], _ = quad(integrand, l, r, limit = INTLIM_PER_PIECE)
+        if not parallel:
+            for i in range(self.m):
+                for j in range(self.d):
+                    l = self.breakpoints[i]
+                    r = self.breakpoints[i+1]
+                    if self.basis_type == 'Linear-2D':
+                        integrand = lambda t: func_2D[j%2](t)*self.basis_scalar[i][j//2](t)
+                        self.b[i, j], _ = quad(integrand, l, r, limit = INTLIM_PER_PIECE)
+                        # Alt approach 1: use separate quad, but with 2D func and basis, slower than above
+                        ## integrand_x = lambda t: func(t)[0]*self.basis[i][j](t)[0]
+                        ## integrand_y = lambda t: func(t)[1]*self.basis[i][j](t)[1]
+                        ## integral_x, _ = quad(integrand_x, l, r, limit = INTLIM_PER_PIECE)
+                        ## integral_y, _ = quad(integrand_y, l, r, limit = INTLIM_PER_PIECE)
+                        ## self.b[i, j] = integral_x+integral_y
+                        # Alt approch 2: use quad_vec, very slow
+                        ## integrand = lambda x: func(x)*self.basis[i][j](x)
+                        ## integral_vec, _ = quad_vec(integrand, l, r, limit = INTLIM_PER_PIECE)
+                        ## self.b[i, j] = np.sum(integral_vec)
+                    else:
+                        integrand = lambda x: func(x)*self.basis[i][j](x)
+                        self.b[i, j], _ = quad(integrand, l, r, limit = INTLIM_PER_PIECE)
+        else:
+            tasks = []
+            for i in range(self.m):
+                for j in range(self.d):
+                    l = self.breakpoints[i]
+                    r = self.breakpoints[i+1]
+                    tasks.append((i, j, self._get_integrand(i, j), l, r))
+            with ProcessingPool() as pool:
+                results = pool.map(self._integration_task, tasks)
+            for i, j, integral in results:
+                self.b[i, j] = integral
+
         if self.isOrthonormal:
             self.coeff = self.b
         else:
@@ -154,6 +184,9 @@ class PrivatePiecewiseApprox:
         # logging.info("b = %s", self.b)
         # logging.info("c = %s", self.coeff)
 
+    def privatize(self, eps = 0.5, method = 'Laplace'):
+        self.eps = eps
+        self.method = method
         if method == None:
             self.noise = np.zeros((self.m, self.d))
         elif method == 'Laplace':

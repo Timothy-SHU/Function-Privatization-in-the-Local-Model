@@ -1,3 +1,4 @@
+import sys
 import wfdb
 from PrivPwcApprox import *
 
@@ -22,9 +23,12 @@ t = np.linspace(1/record.fs*TIME_SCALE, T, n)
 val = record.p_signal[:, 1]*VAL_SCALE
 func = time_series_func(t, val)
 
-mode = input("Allow unbounded basis function? (Y/n)\t")
-while mode not in ["Y", "y", "N", "n"]:
+if len(sys.argv) == 1:
     mode = input("Allow unbounded basis function? (Y/n)\t")
+    while mode not in ["Y", "y", "N", "n"]:
+        mode = input("Allow unbounded basis function? (Y/n)\t")
+else:
+    mode = sys.argv[1]
 
 if mode == "Y" or mode == "y":
     timer = time.time()
@@ -34,14 +38,15 @@ if mode == "Y" or mode == "y":
     # the overhead of integartion (espcially on func that is not smooth) is very large
     # also note that splitting into intervals and use unbounded sinc (as below) will give wrong answers
     # because this will only integrate func and basis on one interval, but basis should be unbounded
-    # breakpoints = np.linspace(t[0], T, n//BATCH_SIZE)
-    # solver = PrivatePiecewiseApprox((t[0], T), breakpoints, 'Sinc-unbounded', BATCH_SIZE*TIME_SCALE//record.fs)
+    ## breakpoints = np.linspace(t[0], T, n//BATCH_SIZE)
+    ## solver = PrivatePiecewiseApprox((t[0], T), breakpoints, 'Sinc-unbounded', BATCH_SIZE*TIME_SCALE//record.fs)
 else:
     timer = time.time()
     breakpoints = np.linspace(t[0], T, n//BATCH_SIZE)
     solver = PrivatePiecewiseApprox((t[0], T), breakpoints, 'Sinc', BATCH_SIZE*TIME_SCALE//record.fs)
 print(f"Inner product matrix preprocessed in {time.time()-timer:.5f} sec.")
-solver.solve(func, eps = 1, method = 'Laplace')
+solver.fit(func)
+solver.privatize(1, 'Laplace')
 approx = solver.createApprox()
 priv = solver.createPriv()
 plt.figure(figsize = (20, 5))
