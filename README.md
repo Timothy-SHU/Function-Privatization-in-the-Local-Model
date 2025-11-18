@@ -13,8 +13,8 @@ Supported basis include:
 
 - $\texttt{Polynomial}$: polynomial basis, with degree specified in `degree`. When degree is at most 2, the basis generated is orthonormal.
 - $\texttt{Linear-2D}$: 2D linear basis equivalent to $\phi_1(t)=(1,0)$, $\phi_2(t)=(t,0)$, $\phi_3(t)=(0,1)$, and $\phi_4(t)=(0,t)$; converted into orthonormal basis by default.
-- $\texttt{Fourier}$: partial Fourier basis $\phi_0(x)=1,\bigl\{\phi_k(x)=\sin(2k\pi x),\phi_k'(x)=\cos(2k\pi x)\bigr\}_{k=1}^{\text{degree}}$.
-- $\texttt{Sinc}$: bounded sinc function $\bigl\{\phi_k(x)=\sin(\pi(x-k))/(\pi(x-k))\bigr\}_{k=0}^\text{degree}$, where the degree is also known as the shift; note that it has no value (0) outside `interval`.
+- $\texttt{Fourier}$: partial Fourier basis $\phi_0(x)=1$ and $\phi_k(x)=\sin(2k\pi x),\phi_k'(x)=\cos(2k\pi x)$ for $k=1,2,\cdots,\text{degree}$.
+- $\texttt{Sinc}$: bounded sinc function $\phi_k(x)=\sin(\pi(x-k))/(\pi(x-k))$ for $k=1,2,\cdots,\text{degree}$., where the degree is also known as the shift; note that it has no value (0) outside `interval`.
 - $\texttt{Sinc-unbounded}$: unbounded sinc function similar to above, but has value everywhere on $\mathbb{R}$; must be orthonormal.
 
 Use `fit(func)` to obtain least-squares functional approximation of a function `func`. For 2D function, to speed-up computation, convert `func` further into array `func_2D` of two scalar functions and call `fit(func, func_2D)`. The additional `parallel` parameter specifies whether enabling parallelism during approximation. The resulting approximation can be constructed using `createApprox()` method.
