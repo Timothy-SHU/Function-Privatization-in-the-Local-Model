@@ -267,9 +267,12 @@ class PrivatePiecewiseApprox:
                 err -= 2*self.coeff[i]@self.b[i]
                 if self.isOrthonormal:
                     err += self.coeff[i]@self.coeff[i]
-                    # print(self.funcSqrInt, self.coeff[i]@self.coeff[i])
                 else:
                     err += self.coeff[i].T@self.G[i]@self.coeff[i]
+            if err < 0:
+                approx = self.createApprox()
+                integrand = lambda x: (self.func(x)-approx(x))**2
+                err, _ = quad(integrand, self.l, self.r, limit = INTLIM)
         elif type == 'Priv':
             for i in range(self.m):
                 err -= 2*(self.coeff[i]+self.noise[i])@self.b[i]
@@ -277,6 +280,10 @@ class PrivatePiecewiseApprox:
                     err += (self.coeff[i]+self.noise[i])@(self.coeff[i]+self.noise[i])
                 else:
                     err += (self.coeff[i]+self.noise[i]).T@self.G[i]@(self.coeff[i]+self.noise[i])
+            if err < 0:
+                priv = self.createPriv()
+                integrand = lambda x: (self.func(x)-priv(x))**2
+                err, _ = quad(integrand, self.l, self.r, limit = INTLIM)
         else:
             logging.error(f"ERR: no such loss type '{type}'.")
         return np.sqrt(err)
