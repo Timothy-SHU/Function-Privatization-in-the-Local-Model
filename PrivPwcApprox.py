@@ -1,11 +1,12 @@
 import os
 import time
 import numpy as np
+import cvxpy as cp
 import pandas as pd
 from math import log
 from json import loads
 from scipy.stats import laplace, gamma
-from scipy.linalg import inv, pinv, sqrtm, solve
+from scipy.linalg import inv, pinv, sqrtm, solve, block_diag
 from scipy.integrate import quad, quad_vec, IntegrationWarning
 
 import matplotlib.pyplot as plt
@@ -81,7 +82,7 @@ class PrivatePiecewiseApprox:
                             l = breakpoints[i]
                             r = breakpoints[i+1]
                             tasks.append((i, j1, j2, self._get_basis_integrand(i, j1, j2), l, r))
-                with ProcessingPool() as pool:
+                with ProcessingPool(ncpus = 12) as pool:
                     results = pool.map(self._basis_integrate_task, tasks)
                 for i, j1, j2, integral in results:
                     self.G[i, j1, j2] = integral
@@ -223,6 +224,32 @@ class PrivatePiecewiseApprox:
         else:
             logging.error(f"ERR: no such method '{method}'.")
         # logging.info("noise = %s", self.noise)
+
+    def smooth(self):
+        if self.isOrthonormal:
+            M = np.eye(self.m*self.d)
+        else:
+            M = block_diag(*self.G)
+        q = -(self.coeff+self.noise).flatten()@M
+        if self.basis_type == 'Linear-2D':
+            C = np.zeros(((self.m-1)*2, self.m*self.d))
+        else:
+            C = np.zeros((self.m-1, self.m*self.d))
+        for i in range(self.m-1):
+            for j in range(self.d):
+                if self.basis_type == 'Linear-2D':
+                    C[i*2, i*self.d+j], C[i*2+1, i*self.d+j] = self.basis[i][j](self.breakpoints[i+1])
+                    C[i*2, (i+1)*self.d+j], C[i*2+1, (i+1)*self.d+j] = -self.basis[i+1][j](self.breakpoints[i+1])
+                else:
+                    C[i, i*self.d+j] = self.basis[i][j](self.breakpoints[i+1])
+                    C[i, (i+1)*self.d+j] = -self.basis[i+1][j](self.breakpoints[i+1])
+        y = cp.Variable(self.m*self.d)
+        QP = cp.Problem(cp.Minimize((1/2)*cp.quad_form(y, M)+q@y), 
+                        [C@y == np.zeros(C.shape[0])])
+        QP.solve()
+        for i in range(self.m):
+            for j in range(self.d):
+                self.noise[i, j] = y.value[i*self.d+j]-self.coeff[i, j]
     
     def createApprox(self):
         if self.func == None:
