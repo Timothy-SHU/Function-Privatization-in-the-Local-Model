@@ -272,7 +272,11 @@ class PrivatePiecewiseApprox:
             if err < 0:
                 approx = self.createApprox()
                 integrand = lambda x: (self.func(x)-approx(x))**2
-                err, _ = quad(integrand, self.l, self.r, limit = INTLIM)
+                if self.basis_type == 'Linear-2D':
+                    integral_vec, _ = quad_vec(integrand, self.l, self.r, limit = INTLIM)
+                    err = np.sum(integral_vec)
+                else:
+                    err, _ = quad(integrand, self.l, self.r, limit = INTLIM)
         elif type == 'Priv':
             for i in range(self.m):
                 err -= 2*(self.coeff[i]+self.noise[i])@self.b[i]
@@ -283,7 +287,11 @@ class PrivatePiecewiseApprox:
             if err < 0:
                 priv = self.createPriv()
                 integrand = lambda x: (self.func(x)-priv(x))**2
-                err, _ = quad(integrand, self.l, self.r, limit = INTLIM)
+                if self.basis_type == 'Linear-2D':
+                    integral_vec, _ = quad_vec(integrand, self.l, self.r, limit = INTLIM)
+                    err = np.sum(integral_vec)
+                else:
+                    err, _ = quad(integrand, self.l, self.r, limit = INTLIM)
         else:
             logging.error(f"ERR: no such loss type '{type}'.")
         return np.sqrt(err)

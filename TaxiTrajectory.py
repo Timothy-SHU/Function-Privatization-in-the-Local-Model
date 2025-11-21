@@ -31,7 +31,8 @@ parallel = parallel in ["Y", "y"]
 
 timer = time.time()
 iter_timer = time.time()
-for i in range(len(df)):
+# for i in range(len(df)):
+for i in range(53, len(df)):
     for j in range(len(df['t'][i])//BATCH_SIZE):
         t = df['t'][i][j*BATCH_SIZE:(j+1)*BATCH_SIZE]
         t = [(cur-t[0]).total_seconds() for cur in t]
@@ -80,7 +81,7 @@ for i in range(len(df)):
                 priv_loss = solver.evalPrivLoss()
                 res_file.write(f"{priv_loss} {err_priv}\n")
             res_file.close()
-            print(f"Dataset #{i+1} batch #{j+1} done. Executed in {time.time()-iter_timer:.2f} sec.")
+            print(f"Dataset #{i+1} batch #{j+1} done. Executed in {time.time()-iter_timer:.2f} sec.", flush = True)
         iter_timer = time.time()
 
         """ Privatize x and y separately
@@ -104,7 +105,7 @@ for i in range(len(df)):
     if interactive:
         break
 
-    break   # sample: run only the first dataset
+    # break   # sample: run only the first dataset
 
 if not interactive:
     dir = f"results/taxi_{EPS}_{BATCH_SIZE}_{SVT_THRESHOLD_SCALE}/"
