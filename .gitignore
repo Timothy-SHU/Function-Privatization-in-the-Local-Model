@@ -8,6 +8,8 @@ ptb-xl/records100/*
 !ptb-xl/records100/00000
 ptb-xl/records500/*
 
+results/taxi_0.01_1000_10
+
 *.swp
 info.log
 __pycache__
