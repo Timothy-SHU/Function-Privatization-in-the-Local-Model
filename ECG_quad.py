@@ -1,5 +1,7 @@
-import os, sys, time, shutil, wfdb
-from PrivPwcApprox import *
+import sys
+import wfdb
+import shutil
+from PrivPwcApprox_quad import *
 
 EPS = 1
 BATCH_SIZE = 10
@@ -68,7 +70,7 @@ if __name__ == "__main__":
             solver = PrivatePiecewiseApprox((t[0], T), breakpoints, 'Sinc', BATCH_SIZE*TIME_SCALE//record.fs, parallel = parallel)
         if interactive:
             print(f"Inner product matrix preprocessed in {time.time()-timer:.2f} sec.")
-        solver.fit(func, (t, val), parallel = parallel)
+        solver.fit(func, parallel = parallel)
 
         if interactive:
             solver.privatize(EPS)
@@ -83,7 +85,7 @@ if __name__ == "__main__":
             dense_t = np.linspace(0, T, 10*n+1)
             plt.plot(dense_t/TIME_SCALE, approx(dense_t)/VAL_SCALE, color = 'red')
             plt.plot(dense_t/TIME_SCALE, priv(dense_t)/VAL_SCALE, color = 'blue')
-            print(f"Privatized in {time.time()-timer:.2f} sec (incl preproc).")
+            print(f"Privatized in {time.time()-timer:.2f} sec.")
 
             smooth_timer = time.time()
             solver.smooth()

@@ -1,24 +1,33 @@
+import os
+import time
 import numpy as np
 import cvxpy as cp
-import matplotlib.pyplot as plt
-from scipy.special import sici
+import pandas as pd
+from math import log
+from json import loads
 from scipy.stats import laplace, gamma
-from scipy.linalg import inv, pinv, sqrtm, block_diag
+from scipy.linalg import inv, pinv, sqrtm, solve, block_diag
 from scipy.integrate import quad, quad_vec, IntegrationWarning
+
+import matplotlib.pyplot as plt
+from matplotlib.image import NonUniformImage
+
+from functools import partial
+from multiprocessing import cpu_count, Pool
 from pathos.multiprocessing import ProcessingPool
 
 import logging
 import warnings
 logging.getLogger('matplotlib.pyplot').disabled = True
 logging.getLogger('matplotlib.font_manager').disabled = True
-logging.basicConfig(filename = 'info.log', filemode = 'w', level = logging.INFO)
+logging.basicConfig(filename = 'info_quad.log', filemode = 'w', level = logging.INFO)
 warnings.simplefilter("ignore", category = IntegrationWarning)      # ignore integration precision warnings
 
 INTLIM = 1000
 INTLIM_PER_PIECE = 100
 
 class PrivatePiecewiseApprox:
-    def __init__(self, interval, breakpoints, basis_type, degree = 1, parallel = False):
+    def __init__(self, interval, breakpoints, basis_type = 'Polynomial', degree = 1, parallel = False):
         self.degree = degree
         self.l, self.r = np.float64(interval)
         self.breakpoints = breakpoints
@@ -26,23 +35,21 @@ class PrivatePiecewiseApprox:
         self.isOrthonormal = False
 
         self.basis = []
-        self.params = []
+        self.basis_scalar = []
         for i in range(len(breakpoints)-1):
             self.basis.append([])
-            self.params.append([])
+            self.basis_scalar.append([])
             for k in range(degree+1):
                 if basis_type == 'Linear-2D':
                     self.basis[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], k, 0))
                     self.basis[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], k, 1))
-                    self.params[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], k, -1))
+                    self.basis_scalar[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], k, 2))
                 else:
                     self.basis[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], k))
                     if basis_type == 'Fourier' and k > 0:
                         self.basis[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], -k))
-                    if basis_type == 'Sinc' or basis_type == 'Sinc-unbounded':
-                        self.params[-1].append({'a': breakpoints[i]+k})
         
-        self.m = len(breakpoints)-1    # m pieces in total
+        self.m = len(breakpoints)-1     # m pieces in total
         self.d = len(self.basis[0])    # each piece has d basis functions
         if basis_type == 'Polynomial' and degree <= 2:
             self.isOrthonormal = True
@@ -57,9 +64,10 @@ class PrivatePiecewiseApprox:
                 for i in range(self.m):
                     for j1 in range(self.d):
                         for j2 in range(self.d):
-                            l = breakpoints[i]; r = breakpoints[i+1]
-                            task = (i, j1, j2, self._get_basis_integrand(i, j1, j2), l, r)
-                            _, _, _, self.G[i, j1, j2] = self._basis_integrate_task(task)
+                            l = breakpoints[i]
+                            r = breakpoints[i+1]
+                            integrand = lambda x: self.basis[i][j1](x)*self.basis[i][j2](x)
+                            self.G[i, j1, j2], _ = quad(integrand, l, r, limit = INTLIM_PER_PIECE)
                     self.invG[i] = pinv(self.G[i])
                     # np.set_printoptions(precision = 4, linewidth = 100, suppress = True)
                     # logging.info("G = \n%s", self.G[i])
@@ -71,7 +79,8 @@ class PrivatePiecewiseApprox:
                 for i in range(self.m):
                     for j1 in range(self.d):
                         for j2 in range(self.d):
-                            l = breakpoints[i]; r = breakpoints[i+1]
+                            l = breakpoints[i]
+                            r = breakpoints[i+1]
                             tasks.append((i, j1, j2, self._get_basis_integrand(i, j1, j2), l, r))
                 with ProcessingPool(ncpus = 12) as pool:
                     results = pool.map(self._basis_integrate_task, tasks)
@@ -92,17 +101,17 @@ class PrivatePiecewiseApprox:
                 return lambda x: np.sqrt((2*k+1)/2) * 1/np.sqrt(((r-l)/2)**(2*k+1)) * ((x-(l+r)/2)**k)
         elif self.basis_type == 'Linear-2D':
             if k == 0 and dim == 0:
-                return lambda t: np.array([1/np.sqrt(r-l), 0])
+                return lambda x: np.array([1/np.sqrt(r-l), 0])
             elif k == 0 and dim == 1:
-                return lambda t: np.array([0, 1/np.sqrt(r-l)])
-            elif k == 0 and dim == -1:  # param
-                return {'k': 0, 'b': 1/np.sqrt(r-l)}
+                return lambda x: np.array([0, 1/np.sqrt(r-l)])
+            elif k == 0 and dim == 2:   # scalar func
+                return lambda x: 1/np.sqrt(r-l)
             elif k == 1 and dim == 0:
-                return lambda t: np.array([np.sqrt(12/((r-l)**3))*(t-(l+r)/2), 0])
+                return lambda x: np.array([np.sqrt(12/((r-l)**3))*(x-(l+r)/2), 0])
             elif k == 1 and dim == 1:
-                return lambda t: np.array([0, np.sqrt(12/((r-l)**3))*(t-(l+r)/2)])
-            elif k == 1 and dim == -1:
-                return {'k': np.sqrt(12/((r-l)**3)), 'b': -np.sqrt(12/((r-l)**3))*(l+r)/2}
+                return lambda x: np.array([0, np.sqrt(12/((r-l)**3))*(x-(l+r)/2)])
+            elif k == 1 and dim == 2:   # scalar func
+                return lambda x: np.sqrt(12/((r-l)**3))*(x-(l+r)/2)
             else:
                 logging.error(f"ERR: linear 2D basis param 'k = {k}, dim = {dim}' not valid.")
         elif self.basis_type == 'Fourier':
@@ -118,99 +127,34 @@ class PrivatePiecewiseApprox:
             logging.error(f"ERR: no such basis '{self.basis_type}'.")
 
     def _get_basis_integrand(self, i, j1, j2):
-        if self.basis_type == 'Sinc': return None
         return lambda x: self.basis[i][j1](x)*self.basis[i][j2](x)
     def _basis_integrate_task(self, task):
-        if self.basis_type == 'Sinc':
-            l = task[4]; r = task[5]
-            a1 = self.params[task[0]][task[1]]['a']
-            a2 = self.params[task[0]][task[2]]['a']
-            if a1 == a2:
-                integral = sici(2*np.pi*(r-a1))[0] / np.pi
-                if r != a1: integral += (np.cos(np.pi*(r-a1))**2-1) / ((np.pi**2)*(r-a1))
-                integral -= sici(2*np.pi*(l-a1))[0] / np.pi
-                if l != a1: integral -= (np.cos(np.pi*(l-a1))**2-1) / ((np.pi**2)*(l-a1))
-            else:
-                integral = np.sin(np.pi*(a2-a1)) * (sici(2*np.pi*(r-a2))[0] + sici(2*np.pi*(r-a1))[0])
-                # integral -= np.cos(np.pi*(a2-a1)) * (np.log(np.abs(r-a1)/np.abs(r-a2))
-                #                                     + sici(2*np.pi*(r-a2))[1] - sici(2*np.pi*(r-a1))[1])
-                if r == a1: integral += np.cos(np.pi*(a2-a1)) * (np.euler_gamma+np.log(2*np.pi))
-                else: integral += np.cos(np.pi*(a2-a1)) * (sici(2*np.pi*(r-a1))[1] - np.log(np.abs(r-a1)))
-                if r == a2: integral -= np.cos(np.pi*(a2-a1)) * (np.euler_gamma+np.log(2*np.pi))
-                else: integral -= np.cos(np.pi*(a2-a1)) * (sici(2*np.pi*(r-a2))[1] - np.log(np.abs(r-a2)))
-                integral -= np.sin(np.pi*(a2-a1)) * (sici(2*np.pi*(l-a2))[0] + sici(2*np.pi*(l-a1))[0])
-                # integral += np.cos(np.pi*(a2-a1)) * (np.log(np.abs(l-a1)/np.abs(l-a2))
-                #                                     + sici(2*np.pi*(l-a2))[1] - sici(2*np.pi*(l-a1))[1])
-                if l == a1: integral -= np.cos(np.pi*(a2-a1)) * (np.euler_gamma+np.log(2*np.pi))
-                else: integral -= np.cos(np.pi*(a2-a1)) * (sici(2*np.pi*(l-a1))[1] - np.log(np.abs(l-a1)))
-                if l == a2: integral += np.cos(np.pi*(a2-a1)) * (np.euler_gamma+np.log(2*np.pi))
-                else: integral += np.cos(np.pi*(a2-a1)) * (sici(2*np.pi*(l-a2))[1] - np.log(np.abs(l-a2)))
-                integral /= 2*(np.pi**2)*(a2-a1)
-        else:
-            integral, _ = quad(task[3], task[4], task[5], limit = INTLIM_PER_PIECE)
+        integral, _ = quad(task[3], task[4], task[5], limit = INTLIM_PER_PIECE)
         return (task[0], task[1], task[2], integral)
     def _get_fit_integrand(self, i, j):
-        if self.basis_type == 'Linear-2D': return None
+        if self.basis_type == 'Linear-2D':
+            return lambda t: self.func_2D[j%2](t)*self.basis_scalar[i][j//2](t)
         return lambda x: self.func(x)*self.basis[i][j](x)
     def _fit_integrate_task(self, task):
-        if self.basis_type in ['Linear-2D', 'Sinc', 'Sinc-unbounded']:
-            basis_l = task[3]; basis_r = task[4]
-            lidx = max(np.searchsorted(self.ts_t, basis_l, side = 'right')-1, 0)
-            ridx = min(np.searchsorted(self.ts_t, basis_r, side = 'left'), len(self.ts_t)-1)
-            integral = 0
-            for i in range(lidx, ridx):
-                l = max(basis_l, self.ts_t[i])
-                r = min(basis_r, self.ts_t[i+1])
-                if l >= r: continue
-                if self.basis_type == 'Linear-2D':
-                    k1 = (self.ts_val[i+1][task[1]%2]-self.ts_val[i][task[1]%2])/(r-l)
-                    b1 = self.ts_val[i][task[1]%2]-k1*l
-                    k2 = self.params[task[0]][task[1]//2]['k']
-                    b2 = self.params[task[0]][task[1]//2]['b']
-                    # integrate (k1*t+b1)*(k2*t+b2) on [l, r]
-                    # \int k1*k2*t^2+(k1*b2+b1*k2)*t+b1*b2
-                    # = 1/3*k1*k2*x^3+1/2*(k1*b2+b1*k2)*t^2+b1*b2*t
-                    integral += 1/3*k1*k2*(r**3)+1/2*(k1*b2+k2*b1)*(r**2)+(b1*b2)*r
-                    integral -= 1/3*k1*k2*(l**3)+1/2*(k1*b2+k2*b1)*(l**2)+(b1*b2)*l
-                else:
-                    k = (self.ts_val[i+1]-self.ts_val[i])/(r-l)
-                    b = self.ts_val[i]-k*l
-                    a = self.params[task[0]][task[1]]['a']
-                    # integrate sinc(x-a)*(kx+b) on [l, r]
-                    # \int sin(pi(x-a))/(pi(x-a))*(kx+b)
-                    # = [pi*(ak+b)*Si(pi(x-a)) - k*cos(pi(x-a))] / (pi^2)
-                    integral += (np.pi*(a*k+b)*sici(np.pi*(r-a))[0] - k*np.cos(np.pi*(r-a))) / (np.pi**2)
-                    integral -= (np.pi*(a*k+b)*sici(np.pi*(l-a))[0] - k*np.cos(np.pi*(l-a))) / (np.pi**2)
-        else:
-            integral, _ = quad(task[2], task[3], task[4], limit = INTLIM_PER_PIECE)
+        integral, _ = quad(task[2], task[3], task[4], limit = INTLIM_PER_PIECE)
         return (task[0], task[1], integral)
 
-    def fit(self, func, time_series = None, parallel = False):
+    def fit(self, func, func_2D = None, parallel = False):
         self.func = func
-        if time_series != None:
-            self.ts_t, self.ts_val = time_series
+        self.func_2D = func_2D
         self.eps = 0
         self.method = None
         self.noise = np.zeros((self.m, self.d))
         
-        if time_series != None:
-            self.funcSqrInt = 0
-            for i in range(len(self.ts_t)-1):
-                l = self.ts_t[i]; r = self.ts_t[i+1]
-                if l >= r: continue
-                if self.basis_type == 'Linear-2D':
-                    for j in range(0, 2):
-                        k = (self.ts_val[i+1][j]-self.ts_val[i][j])/(r-l)
-                        b = self.ts_val[i][j]-k*l
-                        # integrate (kt+b)^2 on [l, r]
-                        # \int k^2t^2+2kbt+b^2 = 1/3*k^2t^3+kbt^2+b^2*t
-                        self.funcSqrInt += 1/3*(k**2)*(r**3)+k*b*(r**2)+(b**2)*r
-                        self.funcSqrInt -= 1/3*(k**2)*(l**3)+k*b*(l**2)+(b**2)*l
-                else:
-                    k = (self.ts_val[i+1]-self.ts_val[i])/(r-l)
-                    b = self.ts_val[i]-k*l
-                    self.funcSqrInt += 1/3*(k**2)*(r**3)+k*b*(r**2)+(b**2)*r
-                    self.funcSqrInt -= 1/3*(k**2)*(l**3)+k*b*(l**2)+(b**2)*l
+        if self.basis_type == 'Linear-2D':
+            integrand_x = lambda t: func_2D[0](t)**2
+            integrand_y = lambda t: func_2D[1](t)**2
+            integral_x, _ = quad(integrand_x, self.l, self.r, limit = INTLIM)
+            integral_y, _ = quad(integrand_y, self.l, self.r, limit = INTLIM)
+            self.funcSqrInt = integral_x+integral_y
+            # integrand = lambda x: func(x)**2
+            # integral_vec, _ = quad_vec(integrand, self.l, self.r, limit = INTLIM)
+            # self.funcSqrInt = np.sum(integral_vec)
         else:
             integrand = lambda x: func(x)**2
             self.funcSqrInt, _ = quad(integrand, self.l, self.r, limit = INTLIM)
@@ -219,14 +163,30 @@ class PrivatePiecewiseApprox:
         if not parallel:
             for i in range(self.m):
                 for j in range(self.d):
-                    l = self.breakpoints[i]; r = self.breakpoints[i+1]
-                    task = (i, j, self._get_fit_integrand(i, j), l, r)
-                    _, _, self.b[i, j] = self._fit_integrate_task(task)
+                    l = self.breakpoints[i]
+                    r = self.breakpoints[i+1]
+                    if self.basis_type == 'Linear-2D':
+                        integrand = lambda t: func_2D[j%2](t)*self.basis_scalar[i][j//2](t)
+                        self.b[i, j], _ = quad(integrand, l, r, limit = INTLIM_PER_PIECE)
+                        # Alt approach 1: use separate quad, but with 2D func and basis, slower than above
+                        ## integrand_x = lambda t: func(t)[0]*self.basis[i][j](t)[0]
+                        ## integrand_y = lambda t: func(t)[1]*self.basis[i][j](t)[1]
+                        ## integral_x, _ = quad(integrand_x, l, r, limit = INTLIM_PER_PIECE)
+                        ## integral_y, _ = quad(integrand_y, l, r, limit = INTLIM_PER_PIECE)
+                        ## self.b[i, j] = integral_x+integral_y
+                        # Alt approch 2: use quad_vec, very slow
+                        ## integrand = lambda x: func(x)*self.basis[i][j](x)
+                        ## integral_vec, _ = quad_vec(integrand, l, r, limit = INTLIM_PER_PIECE)
+                        ## self.b[i, j] = np.sum(integral_vec)
+                    else:
+                        integrand = lambda x: func(x)*self.basis[i][j](x)
+                        self.b[i, j], _ = quad(integrand, l, r, limit = INTLIM_PER_PIECE)
         else:
             tasks = []
             for i in range(self.m):
                 for j in range(self.d):
-                    l = self.breakpoints[i]; r = self.breakpoints[i+1]
+                    l = self.breakpoints[i]
+                    r = self.breakpoints[i+1]
                     tasks.append((i, j, self._get_fit_integrand(i, j), l, r))
             with ProcessingPool() as pool:
                 results = pool.map(self._fit_integrate_task, tasks)
@@ -266,7 +226,6 @@ class PrivatePiecewiseApprox:
         # logging.info("noise = %s", self.noise)
 
     def smooth(self):
-        if self.m == 1: return
         if self.isOrthonormal:
             M = np.eye(self.m*self.d)
         else:
@@ -376,6 +335,15 @@ class PrivatePiecewiseApprox:
             for i in range(self.m):
                 err += self.noise[i].T@self.G[i]@self.noise[i]
         return np.sqrt(err)
+
+    def clear(self):
+        self.func = None
+        self.eps = None
+        self.method = None
+        self.funcSqrInt = None
+        self.b = None
+        self.coeff = None
+        self.noise = None
 
 def time_series_func(t, val):
     def func(x):

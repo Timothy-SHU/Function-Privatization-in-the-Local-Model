@@ -1,4 +1,4 @@
-from PrivPwcApprox import *
+from PrivPwcApprox_quad import *
 
 logging.getLogger('matplotlib.pyplot').disabled = True
 logging.getLogger('matplotlib.font_manager').disabled = True
@@ -6,18 +6,18 @@ logging.basicConfig(filename = 'info.log', filemode = 'w', level = logging.INFO)
 
 def reduce_seg(func, interval, basis, degree, 
                k0, k, total_eps, eps, beta, 
-               time_series = None, parallel = False):
+               func_2D = None, parallel = False):
     if k == 0:
         return np.array(interval), total_eps
     breakpoints = np.linspace(interval[0], interval[1], (2**k)+1)
-    solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
-    solver.fit(func, time_series, parallel)
+    solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel)
+    solver.fit(func, func_2D, parallel)
     err = solver.eval('Approx')
     noise = laplace.rvs(scale = 1/eps)
     total_eps = total_eps-eps
     logging.info(f"ReduceSeg at interval {interval} with breakpoints {breakpoints}:\n"+
                  f"\tB = {total_eps:.5f}, eps = {eps:.5f}, err = {err:.5f}, noise = {noise:.5f}, "+
-                 f"offset = {(np.log(2)*k0-np.log(1/beta))/eps:.5f}; "+
+                 f"offset = {(log(2)*k0-log(1/beta))/eps:.5f}; "+
                  f"Proceed? {err+noise+(np.log(2)*k0-np.log(1/beta))/eps <= 2**(k-1)}.")
     
     if err+noise+(np.log(2)*k0-np.log(1/beta))/eps <= 2**(k-1):
@@ -25,15 +25,15 @@ def reduce_seg(func, interval, basis, degree,
             breakpoints = np.array(interval)
         else:
             l_pts, total_eps = reduce_seg(func, (interval[0], (interval[0]+interval[1])/2), basis, degree, 
-                                          k0, k-2, total_eps, eps/4, beta, time_series, parallel)
+                                          k0, k-2, total_eps, eps/4, beta, func_2D, parallel)
             r_pts, total_eps = reduce_seg(func, ((interval[0]+interval[1])/2, interval[1]), basis, degree, 
-                                          k0, k-2, total_eps, eps/4, beta, time_series, parallel)
+                                          k0, k-2, total_eps, eps/4, beta, func_2D, parallel)
             breakpoints = np.concatenate((l_pts[:-1], r_pts))
     return breakpoints, total_eps
 
 def adaptive_approx(func, interval, basis = 'Polynomial', degree = 1, 
-                    eps = 1, beta = 0.1, method = 'Laplace', SVT_threshold_scale = 1, 
-                    time_series = None, parallel = False):
+                    eps = 1, beta = 0.1, method = 'Laplace', 
+                    func_2D = None, SVT_threshold_scale = 1, parallel = False):
     logging.info("="*100)
     logging.info(f"Adaptive Private Function Approximation with degree-{degree} polynomials (eps = {eps}, beta = {beta})")
     # SVT using eps/4 privacy quota (eps_1 = eps/12, eps_2 = eps/6)
@@ -41,8 +41,8 @@ def adaptive_approx(func, interval, basis = 'Polynomial', degree = 1,
     w = laplace.rvs(scale = 12/eps)
     while True:
         breakpoints = np.linspace(interval[0], interval[1], (2**k_bar)+1)
-        solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
-        solver.fit(func, time_series, parallel)
+        solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel)
+        solver.fit(func, func_2D, parallel)
         v = laplace.rvs(scale = 12/eps)
         tau = (2**k_bar)*4/eps
         err = solver.eval()
@@ -65,12 +65,12 @@ def adaptive_approx(func, interval, basis = 'Polynomial', degree = 1,
         breakpoints = np.array([interval[0]])
         for i in range(4):
             pts, B = reduce_seg(func, (interval[0]+(interval[1]-interval[0])*i/4, interval[0]+(interval[1]-interval[0])*(i+1)/4), 
-                                basis, degree, k0, k_bar-2, B, eps/32, beta, time_series, parallel)
+                                basis, degree, k0, k_bar-2, B, eps/32, beta, func_2D = func_2D)
             breakpoints = np.concatenate((breakpoints[:-1], pts))
     logging.info(f"Final breakpoints: {breakpoints}, remaining eps = {B:.5f}.")
     logging.info("-"*100)
 
-    solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
+    solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel)
     solver.fit(func, func_2D, parallel)
     """
     solver.privatize(B, method)

@@ -8,7 +8,7 @@ plot_1D_1D(solver)
 plt.tight_layout()
 plt.show()
 
-solver = PrivatePiecewiseApprox((0, 100), [0, 25, 50, 75, 100], degree = 3)
+solver = PrivatePiecewiseApprox((0, 100), [0, 25, 50, 75, 100], 'Polynomial', 3)
 plt.figure(figsize = (16, 12))
 plt.subplot(2, 2, 1)
 func = lambda x: 1*np.exp(-(x-20)**2/(2*8*8))+2*np.exp(-(x-80)**2/(2*5*5))
@@ -35,7 +35,7 @@ plt.show()
 
 print("="*100)
 print("Impact of scaling function value (1x, 10x, 100x):")
-solver = PrivatePiecewiseApprox((0, 100), np.linspace(0, 100, 4), degree = 3)
+solver = PrivatePiecewiseApprox((0, 100), np.linspace(0, 100, 4), 'Polynomial', 3)
 for scale in [1, 10, 100]:
     func = lambda x: scale*(10*np.exp(-(x-20)**2/(2*8*8))+20*np.exp(-(x-80)**2/(2*5*5)))
     err_ls_sum = 0; err_priv_sum = 0; err_total_sum = 0
@@ -45,7 +45,6 @@ for scale in [1, 10, 100]:
         err_ls_sum += solver.eval('Approx')
         err_priv_sum += solver.evalPrivLoss()
         err_total_sum += solver.eval('Priv')
-        solver.clear()
     print(f"||f-f_approx|| = {err_ls_sum/10:.5f};", end = ' ')
     print(f"||f_approx-f_priv|| = {err_priv_sum/10:.5f};", end = ' ')
     print(f"||f-f_priv|| = {err_total_sum/10:.5f}.")
@@ -54,7 +53,7 @@ print("="*100)
 print("Impact of scaling independent variable (1x, 10x, 100x):")
 for scale in [1, 10, 100]:
     func = lambda x: 10*np.exp(-(x-0.2*scale)**2/(2*0.08*scale*0.08*scale))+20*np.exp(-(x-0.8*scale)**2/(2*0.05*scale*0.05*scale))
-    solver = PrivatePiecewiseApprox((0, 1*scale), np.linspace(0, 1*scale, 4), degree = 3)
+    solver = PrivatePiecewiseApprox((0, 1*scale), np.linspace(0, 1*scale, 4), 'Polynomial', 3)
     err_ls_sum = 0; err_priv_sum = 0; err_total_sum = 0
     for i in range(10):
         solver.fit(func)
@@ -62,7 +61,6 @@ for scale in [1, 10, 100]:
         err_ls_sum += solver.eval('Approx')
         err_priv_sum += solver.evalPrivLoss()
         err_total_sum += solver.eval('Priv')
-        solver.clear()
     print(f"||f-f_approx|| = {err_ls_sum/10:.5f};", end = ' ')
     print(f"||f_approx-f_priv|| = {err_priv_sum/10:.5f};", end = ' ')
     print(f"||f-f_priv|| = {err_total_sum/10:.5f}.")

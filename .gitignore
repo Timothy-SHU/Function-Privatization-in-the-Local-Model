@@ -12,5 +12,6 @@ results/taxi_0.01_1000_10
 
 *.swp
 info.log
+info_quad.log
 __pycache__
 PrivPwcApprox_old.py

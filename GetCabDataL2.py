@@ -4,7 +4,7 @@ UNIT = 1000
 EARTH_RADIUS = 6371*UNIT
 SPEED_LIMIT = 180*UNIT/60/60
 
-BATCH_SIZE = 100
+BATCH_SIZE = 1000
 SVT_THRESHOLD_SCALE = 200
 
 df = pd.read_pickle("cabspottingdata/trajectory.pkl")
@@ -17,6 +17,7 @@ for i in range(10):
     # for j in range(len(df['t'][i])//BATCH_SIZE):
     for j in range(10):
         t = df['t'][i][j*BATCH_SIZE:(j+1)*BATCH_SIZE]
+        t = [(cur-t[0]).total_seconds() for cur in t]
         x = df['x'][i][j*BATCH_SIZE:(j+1)*BATCH_SIZE]
         y = df['y'][i][j*BATCH_SIZE:(j+1)*BATCH_SIZE]
         min_x = np.min(x); x -= min_x
