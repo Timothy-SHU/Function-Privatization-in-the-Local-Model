@@ -35,21 +35,22 @@ The taxi trajectory dataset is under `cabspottingdata/` directory. `PreprocCabDa
 
 Directly calling `TaxiTrajectory.py` will execute in interactive mode, where one sample curve of 1000 points is privatized with $\varepsilon=0.01$.
 
-For batch experiment, add 4 arguments when calling the script: the privacy quota, the batch size, the SVT threshold factor, and a character 'y' or 'n' to indicate whether enabling parallelism. Each curve is privatized and recorded for 20 times. The results will be stored under `results/taxi_{args}/` directory.
+For batch experiment, add 4 arguments when calling the script: the privacy quota, the batch size, the SVT threshold factor, and a character 'y' or 'n' to indicate whether or not to enable multiprocessing. Each curve is privatized and recorded for 20 times. The results will be stored under `results/taxi_{args}/` directory.
 ```
 python PreprocCabData.py
-python TaxiTrajectory.py 0.01 1000 10 y
+python TaxiTrajectory.py 0.01 1000 10 n | tee results/taxi_cmd.log
 ```
 
 The ECG dataset is under `ptb-xl/` directory. `ECG.py` loads the records and privatizes them with bounded Sinc basis. Here we use public info of average QRS interval length and scale the time by a factor of 80. Each ECG record consists of 1000 datapoints sampled at frequency 10 Hz, so each record spans 10 seconds (thus 800 after scaling). We split it to $m$ intervals, where each interval has bounded Sinc basis with shift $800/m$.
 
 Directly calling `ECG.py` will execute in interactive mode with $\varepsilon=1$, where the bounded Sinc basis (if used) has $m$ set to 100.
 
-For batch experiment, add 4 arguments when calling the script: the privacy quota, the batch size, a character 'y' or 'n' to indicate whether the Sinc basis is unbounded, and a character 'y' or 'n' to indicate whether enabling parallelism. Note that given batch size $s$, the corresponding $m$ is $m=1000/s$. Each curve is privatized and recorded for 20 times. The results will be stored under `results/ECG_{args}/` directory.
+For batch experiment, add 4 arguments when calling the script: the privacy quota, the batch size, a character 'y' or 'n' to indicate whether the Sinc basis is unbounded, and a character 'y' or 'n' to indicate whether or not to enable multiprocessing. Note that given batch size $s$, the corresponding $m$ is $m=1000/s$. Each curve is privatized and recorded for 20 times. The results will be stored under `results/ECG_{args}/` directory.
 ```
-python ECG.py 1 5 n n
-python ECG.py 1 20 n y
+python ECG.py 1 5 n n | tee results/ECG_cmd.log
+python ECG.py 1 20 n n | tee results/ECG_cmd.log
 ```
-The first command splits into 200 intervals, where each interval is equipped with Sinc basis of shift 5; no parallelism is used.
-The second command splits into 50 intervals, where each interval is equipped with Sinc basis of shift 16; parallelism is enabled.
-In fact, multiprocessing is beneficial roughly after batch size exceeds 10.
+The first command splits into 200 intervals, where each interval is equipped with Sinc basis of shift 5.
+The second command splits into 50 intervals, where each interval is equipped with Sinc basis of shift 16.
+
+We added efficient integration for $\texttt{Linear-2D}$ basis and $\texttt{Sinc}$ basis based on purely arithmetic computations, so multiprocessing is not needed for these bases. For other bases, integration uses `scipy.integrate.quad`, and enabling multiprocessing is recommended.

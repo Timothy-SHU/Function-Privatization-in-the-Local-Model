@@ -9,6 +9,7 @@ ptb-xl/records100/*
 ptb-xl/records500/*
 
 results/taxi_0.01_1000_10
+results/taxi_0.01_1000_10 (quad)
 
 *.swp
 info.log
