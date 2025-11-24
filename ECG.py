@@ -1,5 +1,6 @@
 import os, sys, time, shutil, wfdb
 from PrivPwcApprox import *
+from tqdm import tqdm
 
 EPS = 1
 BATCH_SIZE = 20
@@ -20,8 +21,8 @@ if len(sys.argv) > 1:
 
 records = []
 timer = time.time()
-# for i in range(1, 21838):
-for i in range (1, 21):  # sample: run only the first 20 records
+for i in range(1, 21838):
+# for i in range (1, 21):  # sample: run only the first 20 records
     folder = "{:05d}".format(i//1000*1000)
     file = "{:05d}_lr".format(i)
     path = "ptb-xl/records100/"+folder+"/"+file
@@ -43,7 +44,7 @@ unbounded = unbounded in ["Y", "y"]
 parallel = parallel in ["Y", "y"]
 
 timer = time.time()
-for folder, file, record in records:
+for folder, file, record in tqdm(records, position = 0, leave = True):
     iter_timer = time.time()
     n = record.p_signal.shape[0]
     T = n//record.fs*TIME_SCALE
@@ -69,8 +70,8 @@ for folder, file, record in records:
     if interactive:
         print(f"Inner product matrix preprocessed in {time.time()-iter_timer:.2f} sec.")
     solver.fit(func, (t, val), parallel = parallel)
-    err_ls = solver.eval('Approx')
     approx_time = time.time()-iter_timer
+    err_ls = solver.eval('Approx')
 
     if interactive:
         solver.privatize(EPS)
@@ -113,16 +114,16 @@ for folder, file, record in records:
         for i in range(repeat):
             priv_timer = time.time()
             solver.privatize(EPS)
+            priv_time = time.time()-priv_timer
             err_priv = solver.eval('Priv')
             priv_loss = solver.evalPrivLoss()
-            priv_time = time.time()-priv_timer
             res_file.write(f"{priv_loss} {err_priv} {priv_time}\n")
             """
             smooth_timer = time.time()
             solver.smooth()
+            smooth_time = time.time()-smooth_timer
             err_smooth = solver.eval('Priv')
             smooth_loss = solver.evalPrivLoss()
-            smooth_time = time.time()-smooth_timer
             res_file.write(f"{smooth_loss} {err_smooth} {smooth_time}\n")
             """
             res_file.write("\n")

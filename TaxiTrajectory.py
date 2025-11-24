@@ -2,6 +2,7 @@ import os, sys, time, shutil
 import pandas as pd
 from PrivPwcApprox import *
 from AdaptApprox import *
+from tqdm import tqdm
 
 EPS = 0.01
 BATCH_SIZE = 1000
@@ -32,8 +33,8 @@ while parallel not in ["Y", "y", "N", "n"]:
 parallel = parallel in ["Y", "y"]
 
 timer = time.time()
-for i in range(len(df)):
-    for j in range((len(df['t'][i])-1)//BATCH_SIZE+1):
+for i in tqdm(range(len(df))):
+    for j in tqdm(range((len(df['t'][i])-1)//BATCH_SIZE+1), leave = False):
         iter_timer = time.time()
         t = df['t'][i][j*BATCH_SIZE : min((j+1)*BATCH_SIZE, len(df['t'][i]))]
         t = [(cur-t[0]).total_seconds() for cur in t]
@@ -47,10 +48,10 @@ for i in range(len(df)):
                                  basis = 'Linear-2D', degree = 1, eps = EPS, 
                                  SVT_threshold_scale = SVT_THRESHOLD_SCALE, 
                                  time_series = time_series, parallel = parallel)
+        approx_time = time.time()-iter_timer
         err_ls = solver.eval('Approx')
         err_priv = solver.eval('Priv')
         priv_loss = solver.evalPrivLoss()
-        approx_time = time.time()-iter_timer
 
         if interactive:
             approx = solver.createApprox(); approx_res = approx(t)
@@ -120,15 +121,15 @@ for i in range(len(df)):
             for k in range(repeat):
                 priv_timer = time.time()
                 solver.privatize(EPS)
+                priv_time = time.time()-priv_timer
                 err_priv = solver.eval('Priv')
                 priv_loss = solver.evalPrivLoss()
-                priv_time = time.time()-priv_timer
                 res_file.write(f"{priv_loss} {err_priv} {priv_time}\n")
                 smooth_timer = time.time()
                 solver.smooth()
+                smooth_time = time.time()-smooth_timer
                 err_smooth = solver.eval('Priv')
                 smooth_loss = solver.evalPrivLoss()
-                smooth_time = time.time()-smooth_timer
                 res_file.write(f"{smooth_loss} {err_smooth} {smooth_time}\n\n")
             res_file.close()
             print(f"Dataset #{i+1} batch #{j+1} done. Executed in {time.time()-iter_timer:.2f} sec.", flush = True)

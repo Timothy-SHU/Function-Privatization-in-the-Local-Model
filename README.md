@@ -38,7 +38,7 @@ Directly calling `TaxiTrajectory.py` will execute in interactive mode, where one
 For batch experiment, add 4 arguments when calling the script: the privacy quota, the batch size, the SVT threshold factor, and a character 'y' or 'n' to indicate whether or not to enable multiprocessing. Each curve is privatized and recorded for 20 times. The results will be stored under `results/taxi_{args}/` directory.
 ```
 python PreprocCabData.py
-python TaxiTrajectory.py 0.01 1000 10 n | tee results/taxi_cmd.log
+python TaxiTrajectory.py 0.01 1000 10 n > results/taxi_cmd.log
 ```
 
 The ECG dataset is under `ptb-xl/` directory. `ECG.py` loads the records and privatizes them with bounded Sinc basis. Here we use public info of average QRS interval length and scale the time by a factor of 80. Each ECG record consists of 1000 datapoints sampled at frequency 10 Hz, so each record spans 10 seconds (thus 800 after scaling). We split it to $m$ intervals, where each interval has bounded Sinc basis with shift $800/m$.
@@ -47,8 +47,8 @@ Directly calling `ECG.py` will execute in interactive mode with $\varepsilon=1$,
 
 For batch experiment, add 4 arguments when calling the script: the privacy quota, the batch size, a character 'y' or 'n' to indicate whether the Sinc basis is unbounded, and a character 'y' or 'n' to indicate whether or not to enable multiprocessing. Note that given batch size $s$, the corresponding $m$ is $m=1000/s$. Each curve is privatized and recorded for 20 times. The results will be stored under `results/ECG_{args}/` directory.
 ```
-python ECG.py 1 5 n n | tee results/ECG_cmd.log
-python ECG.py 1 20 n n | tee results/ECG_cmd.log
+python ECG.py 1 5 n n > results/ECG_cmd.log
+python ECG.py 1 20 n n > results/ECG_cmd.log
 ```
 The first command splits into 200 intervals, where each interval is equipped with Sinc basis of shift 5.
 The second command splits into 50 intervals, where each interval is equipped with Sinc basis of shift 16.
