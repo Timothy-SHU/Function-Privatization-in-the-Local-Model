@@ -54,3 +54,5 @@ The first command splits into 200 intervals, where each interval is equipped wit
 The second command splits into 50 intervals, where each interval is equipped with Sinc basis of shift 16.
 
 We added efficient integration for $\texttt{Linear-2D}$ basis and $\texttt{Sinc}$ basis based on purely arithmetic computations, so multiprocessing is not needed for these bases. For other bases, integration uses `scipy.integrate.quad`, and enabling multiprocessing is recommended.
+
+After the experiment, use `ExptStats.py` to generate summary statistics table for the datasets.
