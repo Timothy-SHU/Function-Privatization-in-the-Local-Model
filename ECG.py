@@ -14,8 +14,9 @@ interactive = True
 if len(sys.argv) > 1:
     EPS = float(sys.argv[1])
     BATCH_SIZE = int(sys.argv[2])
-    unbounded = sys.argv[3]
-    parallel = sys.argv[4]
+    unbounded = "y" if BATCH_SIZE == -1 else "n"
+    # parallel = sys.argv[3]
+    parallel = "n"
     interactive = False
     # interactive = True
 

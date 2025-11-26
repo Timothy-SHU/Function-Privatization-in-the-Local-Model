@@ -5,19 +5,17 @@ from AdaptApprox import *
 from tqdm import tqdm
 
 EPS = 0.01
-BATCH_SIZE = 1000
-SVT_THRESHOLD_SCALE = 10
+BATCH_SIZE = 86400  # 1 day
+SVT_THRESHOLD_SCALE = 1
 repeat = 20
 parallel = None
 interactive = True
 
 if len(sys.argv) > 1:
     EPS = float(sys.argv[1])
-    BATCH_SIZE = int(sys.argv[2])
-    SVT_THRESHOLD_SCALE = float(sys.argv[3])
-    if SVT_THRESHOLD_SCALE.is_integer():
-        SVT_THRESHOLD_SCALE = int(SVT_THRESHOLD_SCALE)
-    parallel = sys.argv[4]
+    # BATCH_SIZE = int(sys.argv[2])
+    # parallel = sys.argv[3]
+    parallel = "n"
     interactive = False
     # interactive = True
 
@@ -34,16 +32,22 @@ parallel = parallel in ["Y", "y"]
 
 timer = time.time()
 for i in tqdm(range(len(df))):
-    for j in tqdm(range((len(df['t'][i])-1)//BATCH_SIZE+1), leave = False):
+    j = 0; start = 0; end = 0
+    while start < len(df['t'][i]):
         iter_timer = time.time()
-        t = df['t'][i][j*BATCH_SIZE : min((j+1)*BATCH_SIZE, len(df['t'][i]))]
+        # while (df['t'][i][end]-df['t'][i][start]).total_seconds() <= BATCH_SIZE:
+        while df['t'][i][start].date() == df['t'][i][end].date():
+            if end+1 < len(df['t'][i]): end += 1
+            else: break
+        t = df['t'][i][start:end]
         t = [(cur-t[0]).total_seconds() for cur in t]
-        x = df['x'][i][j*BATCH_SIZE : min((j+1)*BATCH_SIZE, len(df['t'][i]))]
-        y = df['y'][i][j*BATCH_SIZE : min((j+1)*BATCH_SIZE, len(df['t'][i]))]
+        x = df['x'][i][start:end]
+        y = df['y'][i][start:end]
         min_x = np.min(x); x -= min_x
         min_y = np.min(y); y -= min_y
         func = time_series_func_2D(t, x, y)
         time_series = (t, np.column_stack((x, y)))
+        approx_timer = time.time()
         solver = adaptive_approx(func = func, interval = (t[0], t[-1]), 
                                  basis = 'Linear-2D', degree = 1, eps = EPS, 
                                  SVT_threshold_scale = SVT_THRESHOLD_SCALE, 
@@ -111,9 +115,10 @@ for i in tqdm(range(len(df))):
             plt.plot(t, smooth_t_y+min_y, color = 'tab:green')
             plt.show()
             break
+
         else:
             filename = df['filename'][i].removeprefix("new_").removesuffix(".txt")
-            dir = f"results/taxi_{EPS}_{BATCH_SIZE}_{SVT_THRESHOLD_SCALE}/{filename}/"
+            dir = f"results/taxi_{EPS}/{filename}/"
             os.makedirs(dir, exist_ok = True)
             res_file = open(dir+f"{filename}-{j+1}.txt", 'w')
             res_file.write(f"{np.sqrt(solver.funcSqrInt)}\n")
@@ -133,11 +138,15 @@ for i in tqdm(range(len(df))):
                 res_file.write(f"{smooth_loss} {err_smooth} {smooth_time}\n\n")
             res_file.close()
             print(f"Dataset #{i+1} batch #{j+1} done. Executed in {time.time()-iter_timer:.2f} sec.", flush = True)
+
+        start = end+1
+        j += 1
+
     if interactive:
         break
     # break   # sample: run only the first dataset
 
 if not interactive:
-    dir = f"results/taxi_{EPS}_{BATCH_SIZE}_{SVT_THRESHOLD_SCALE}/"
+    dir = f"results/taxi_{EPS}/"
     shutil.copyfile("info.log", dir+"info.log")
     print(f"Total time elapsed: {time.time()-timer:.2f} sec.")

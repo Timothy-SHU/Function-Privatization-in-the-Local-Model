@@ -7,8 +7,7 @@ from scipy.stats import laplace, gamma
 
 bench = sys.argv[1]
 EPS = float(sys.argv[2])
-GS = int(sys.argv[3])
-BATCH_SIZE = 1000
+SAMPLE = int(sys.argv[3])
 TIME_SCALE = 80
 VAL_SCALE = 1000
 repeat = 20
@@ -41,6 +40,7 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
     print("="*90)
     print(f"Datasets loaded in {time.time()-timer:.2f} sec.")
     print(f"Total # of datapoints: {np.sum([len(df['t'][i]) for i in range(len(df))])}")
+    """
     x_min = np.min(df['x'].apply(np.min))
     x_max = np.min(df['x'].apply(np.max))
     y_min = np.min(df['y'].apply(np.min))
@@ -48,21 +48,27 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
     print(f"x_min = {x_min}; x_max = {x_max}; range = {x_max-x_min}.")
     print(f"y_min = {y_min}; y_max = {y_max}; range = {y_max-y_min}.")
     print(f"Min L_infty GS required: {max(x_max-x_min, y_max-y_min)}.")
+    """
     print("="*90)
 
     timer = time.time()
     for i in tqdm(range(len(df))):
-        for j in tqdm(range((len(df['t'][i])-1)//BATCH_SIZE+1), leave = False):
+        j = 0; start = 0; end = 0
+        while start < len(df['t'][i]):
             iter_timer = time.time()
-            t = df['t'][i][j*BATCH_SIZE : min((j+1)*BATCH_SIZE, len(df['t'][i]))]
+            # while (df['t'][i][end]-df['t'][i][start]).total_seconds() <= BATCH_SIZE:
+            while df['t'][i][start].date() == df['t'][i][end].date():
+                if end+1 < len(df['t'][i]): end += 1
+                else: break
+            t = df['t'][i][start:end]
             t = [(cur-t[0]).total_seconds() for cur in t]
-            x = df['x'][i][j*BATCH_SIZE : min((j+1)*BATCH_SIZE, len(df['t'][i]))]
-            y = df['y'][i][j*BATCH_SIZE : min((j+1)*BATCH_SIZE, len(df['t'][i]))]
+            x = df['x'][i][start:end]
+            y = df['y'][i][start:end]
             min_x = np.min(x); x -= min_x
             min_y = np.min(y); y -= min_y
 
             filename = df['filename'][i].removeprefix("new_").removesuffix(".txt")
-            dir = f"results/taxi_bl_{EPS}_{BATCH_SIZE}_{GS}/{filename}/"
+            dir = f"results/taxi_bl_{EPS}/{filename}/"
             os.makedirs(dir, exist_ok = True)
             res_file = open(dir+f"{filename}-{j+1}.txt", 'w')
             funcSqrInt = sqrInt(t, x, np.zeros(len(t)))
@@ -73,15 +79,17 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
                 x_priv = np.zeros(len(t))
                 y_priv = np.zeros(len(t))
                 for l in range(len(t)):
-                    # L_infty norm, independent Lap noises
-                    x_priv[l] = x[l]+Lap(GS/EPS)
-                    y_priv[l] = y[l]+Lap(GS/EPS)
+                    noise = Lap(1/EPS, 2)
+                    x_priv[l] = x[l]+noise[0]
+                    y_priv[l] = y[l]+noise[1]
                 priv_time = time.time()-priv_timer
                 err_priv = sqrInt(t, x, x_priv)
                 err_priv += sqrInt(t, y, y_priv)
                 err_priv = np.sqrt(err_priv)
                 res_file.write(f"{err_priv} {priv_time}\n")
             res_file.close()
+            start = end+1
+            j += 1
         # break   # sample: run only the first dataset
     print(f"Total time elapsed: {time.time()-timer:.2f} sec.")
 
@@ -104,8 +112,10 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
     print("="*50)
     print(f"{len(records)} records loaded in {time.time()-timer:.2f} sec.")
     print(f"Each {records[0][2].p_signal.shape[0]} datapoints, sampled at frequency {records[0][2].fs} Hz.")
+    """
     print(f"min_val = {min_val}; max_val = {max_val}.")
     print(f"Min L_infty GS required: {max_val-min_val}.")
+    """
     print("="*50)
 
     timer = time.time()
@@ -116,7 +126,7 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
         t = np.linspace(1/record.fs*TIME_SCALE, T, n)
         val = record.p_signal[:, 1]*VAL_SCALE
 
-        dir = f"results/ECG_bl_{EPS}_{GS}/"
+        dir = f"results/ECG_bl_{EPS}/"
         os.makedirs(dir, exist_ok = True)
         res_file = open(dir+f"{file}.txt", 'w')
         funcSqrInt = sqrInt(t, val, np.zeros(len(t)))
@@ -125,7 +135,7 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
             priv_timer = time.time()
             val_priv = np.zeros(n)
             for i in range(n):
-                val_priv[i] = val[i]+Lap(GS/EPS)
+                val_priv[i] = val[i]+Lap(1/EPS)
             priv_time = time.time()-priv_timer
             err_priv = np.sqrt(sqrInt(t, val, val_priv))
             res_file.write(f"{err_priv} {priv_time}\n")
