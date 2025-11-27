@@ -44,11 +44,11 @@ def adaptive_approx(func, interval, basis = 'Polynomial', degree = 1,
         solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
         solver.fit(func, time_series, parallel)
         v = laplace.rvs(scale = 12/eps)
-        tau = (2**k_bar)*4/eps
-        err = solver.eval()
+        # tau = (2**k_bar)*4/eps
+        tau = (2**k_bar)*SVT_threshold_scale
+        err = solver.eval('Approx')
         logging.info(f"SVT: k_bar = {k_bar}, tau = {tau}, err = {err:.5f}, w = {w:.5f}, v = {v:.5f}; Terminate? {tau-err+v >= w}.")
-        if tau-(err/SVT_threshold_scale)+v >= w:
-            break
+        if tau-err+v >= w: break
         k_bar = k_bar+1
     logging.info(f"Final k_bar = {k_bar}.")
     logging.info("-"*100)

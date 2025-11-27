@@ -7,9 +7,11 @@ from scipy.stats import laplace, gamma
 
 bench = sys.argv[1]
 EPS = float(sys.argv[2])
-SAMPLE = int(sys.argv[3])
+SAMPLE_RATE = float(sys.argv[3])
+WINDOW_SCALE = float(sys.argv[4])
 TIME_SCALE = 80
 VAL_SCALE = 1000
+UNIT_TIME_SCALE = 43200
 repeat = 20
 
 def sqrInt(t, val1, val2):
@@ -37,56 +39,72 @@ def Lap(scale, dim = 1):
 if bench in ['t', 'T', 'taxi', 'Taxi']:
     timer = time.time()
     df = pd.read_pickle("cabspottingdata/trajectory.pkl")
-    print("="*90)
     print(f"Datasets loaded in {time.time()-timer:.2f} sec.")
     print(f"Total # of datapoints: {np.sum([len(df['t'][i]) for i in range(len(df))])}")
-    """
-    x_min = np.min(df['x'].apply(np.min))
-    x_max = np.min(df['x'].apply(np.max))
-    y_min = np.min(df['y'].apply(np.min))
-    y_max = np.min(df['y'].apply(np.max))
-    print(f"x_min = {x_min}; x_max = {x_max}; range = {x_max-x_min}.")
-    print(f"y_min = {y_min}; y_max = {y_max}; range = {y_max-y_min}.")
-    print(f"Min L_infty GS required: {max(x_max-x_min, y_max-y_min)}.")
-    """
-    print("="*90)
 
     timer = time.time()
     for i in tqdm(range(len(df))):
         j = 0; start = 0; end = 0
         while start < len(df['t'][i]):
-            iter_timer = time.time()
-            # while (df['t'][i][end]-df['t'][i][start]).total_seconds() <= BATCH_SIZE:
+            iter_timer = time.time(); end = start
             while df['t'][i][start].date() == df['t'][i][end].date():
                 if end+1 < len(df['t'][i]): end += 1
                 else: break
             t = df['t'][i][start:end]
-            t = [(cur-t[0]).total_seconds() for cur in t]
-            x = df['x'][i][start:end]
-            y = df['y'][i][start:end]
+            t = np.array([(cur-t[0]).total_seconds() for cur in t])
+            if end-start <= 10 or t[-1]-t[0] < UNIT_TIME_SCALE:
+                start = end+1
+                continue
+            eps = EPS/UNIT_TIME_SCALE*(t[-1]-t[0])
+            x = np.array(df['x'][i][start:end])
+            y = np.array(df['y'][i][start:end])
             min_x = np.min(x); x -= min_x
             min_y = np.min(y); y -= min_y
 
+            SAMPLE = int(len(t)*SAMPLE_RATE)
+            WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
+
             filename = df['filename'][i].removeprefix("new_").removesuffix(".txt")
-            dir = f"results/taxi_bl_{EPS}/{filename}/"
+            dir = f"results/TaxiTrajectory/taxi_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}/{filename}/"
             os.makedirs(dir, exist_ok = True)
             res_file = open(dir+f"{filename}-{j+1}.txt", 'w')
+            res_file.write(f"{SAMPLE} {WINDOW*2+1}\n")
             funcSqrInt = sqrInt(t, x, np.zeros(len(t)))
             funcSqrInt += sqrInt(t, y, np.zeros(len(t)))
-            res_file.write(f"{np.sqrt(funcSqrInt)}\n")
+            res_file.write(f"{np.sqrt(funcSqrInt)}\n\n")
+
             for k in range(repeat):
                 priv_timer = time.time()
-                x_priv = np.zeros(len(t))
-                y_priv = np.zeros(len(t))
-                for l in range(len(t)):
-                    noise = Lap(1/EPS, 2)
-                    x_priv[l] = x[l]+noise[0]
-                    y_priv[l] = y[l]+noise[1]
+                sample = np.linspace(0, len(t)-1, SAMPLE, dtype = int)
+                sample = [i in sample for i in range(len(t))]
+                x_priv = x[sample]; y_priv = y[sample]
+                for l in range(SAMPLE):
+                    noise = Lap(SAMPLE/EPS, 2)
+                    x_priv[l] += noise[0]
+                    y_priv[l] += noise[1]
+                x_priv_pts = np.interp(t, t[sample], x_priv)
+                y_priv_pts = np.interp(t, t[sample], y_priv)
                 priv_time = time.time()-priv_timer
-                err_priv = sqrInt(t, x, x_priv)
-                err_priv += sqrInt(t, y, y_priv)
+
+                smooth_timer = time.time()
+                x_smooth = np.zeros(SAMPLE)
+                y_smooth = np.zeros(SAMPLE)
+                for l in range(SAMPLE):
+                    x_smooth[l] = np.mean(x_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
+                    y_smooth[l] = np.mean(y_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
+                x_smooth_pts = np.interp(t, t[sample], x_smooth)
+                y_smooth_pts = np.interp(t, t[sample], y_smooth)
+                smooth_time = time.time()-smooth_timer
+
+                err_priv = sqrInt(t, x, x_priv_pts)
+                err_priv += sqrInt(t, y, y_priv_pts)
                 err_priv = np.sqrt(err_priv)
                 res_file.write(f"{err_priv} {priv_time}\n")
+                err_smooth = sqrInt(t, x, x_smooth_pts)
+                err_smooth += sqrInt(t, y, y_smooth_pts)
+                err_smooth = np.sqrt(err_smooth)
+                res_file.write(f"{err_smooth} {smooth_time}\n\n")
+
             res_file.close()
             start = end+1
             j += 1
@@ -109,14 +127,8 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
             max_val = max(max_val, np.max(record.p_signal[:, 1])*VAL_SCALE)
         except:
             pass
-    print("="*50)
     print(f"{len(records)} records loaded in {time.time()-timer:.2f} sec.")
     print(f"Each {records[0][2].p_signal.shape[0]} datapoints, sampled at frequency {records[0][2].fs} Hz.")
-    """
-    print(f"min_val = {min_val}; max_val = {max_val}.")
-    print(f"Min L_infty GS required: {max_val-min_val}.")
-    """
-    print("="*50)
 
     timer = time.time()
     for folder, file, record in tqdm(records, position = 0, leave = True):
@@ -126,19 +138,36 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
         t = np.linspace(1/record.fs*TIME_SCALE, T, n)
         val = record.p_signal[:, 1]*VAL_SCALE
 
-        dir = f"results/ECG_bl_{EPS}/"
+        SAMPLE = int(len(t)*SAMPLE_RATE)
+        WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
+
+        dir = f"results/ECG/ECG_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}/{folder}/"
         os.makedirs(dir, exist_ok = True)
         res_file = open(dir+f"{file}.txt", 'w')
+        res_file.write(f"{SAMPLE} {WINDOW*2+1}\n")
         funcSqrInt = sqrInt(t, val, np.zeros(len(t)))
-        res_file.write(f"{np.sqrt(funcSqrInt)}\n")
+        res_file.write(f"{np.sqrt(funcSqrInt)}\n\n")
         for k in range(repeat):
             priv_timer = time.time()
-            val_priv = np.zeros(n)
-            for i in range(n):
-                val_priv[i] = val[i]+Lap(1/EPS)
+            sample = np.linspace(0, n-1, SAMPLE, dtype = int)
+            sample = [i in sample for i in range(len(t))]
+            val_priv = val[sample]
+            for i in range(SAMPLE):
+                val_priv[i] += Lap(SAMPLE/EPS)
+            val_priv_pts = np.interp(t, t[sample], val_priv)
             priv_time = time.time()-priv_timer
-            err_priv = np.sqrt(sqrInt(t, val, val_priv))
+
+            smooth_timer = time.time()
+            val_smooth = np.zeros(SAMPLE)
+            for l in range(SAMPLE):
+                val_smooth[l] = np.mean(val_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
+            val_smooth_pts = np.interp(t, t[sample], val_smooth)
+            smooth_time = time.time()-smooth_timer
+
+            err_priv = np.sqrt(sqrInt(t, val, val_priv_pts))
             res_file.write(f"{err_priv} {priv_time}\n")
+            err_smooth = np.sqrt(sqrInt(t, val, val_smooth_pts))
+            res_file.write(f"{err_smooth} {smooth_time}\n\n")
         res_file.close()
     print(f"Total time elapsed: {time.time()-timer:.2f} sec.")
 

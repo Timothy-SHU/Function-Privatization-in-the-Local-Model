@@ -8,13 +8,13 @@ ptb-xl/records100/*
 !ptb-xl/records100/00000
 ptb-xl/records500/*
 
-results/taxi_0.01_1000_10
-results/taxi_bl_0.01_1000_400000
-results/ECG_1.0_16x50
-results/ECG_bl_1.0_12000
+results/taxi*
+results/ECG*
+!results/*.zip
 
-archived/taxi_0.01_1000_10 (quad)
-archived/taxi_0.01_1000_10 (11.24)
+archived/taxi*
+archived/ECG*
+!archived/*.zip
 
 *.swp
 info.log
