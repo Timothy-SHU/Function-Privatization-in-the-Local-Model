@@ -3,14 +3,16 @@ archived/covid-19-data
 archived/ecg-spider-clip
 
 cabspottingdata/trajectory.pkl
+cabspottingdata/trajectory_selected.pkl
 
 ptb-xl/records100/*
 !ptb-xl/records100/00000
 ptb-xl/records500/*
 
-results/taxi*
-results/ECG*
-!results/*.zip
+results/TaxiTrajectory/*
+!results/TaxiTrajectory/*.tar.xz
+results/ECG/*
+!results/ECG/*.tar.xz
 
 archived/taxi*
 archived/ECG*

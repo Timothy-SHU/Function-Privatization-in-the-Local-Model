@@ -1,21 +1,31 @@
-python TaxiTrajectory.py 0.001 1000 > results/taxi_0.001_cmd.log
-python TaxiTrajectory.py 0.01 1000 > results/taxi_0.01_cmd.log
-python TaxiTrajectory.py 0.1 1000 > results/taxi_0.1_cmd.log
-python TaxiTrajectory.py 1 1000 > results/taxi_1.0_cmd.log
+echo "Preprocessing taxi trajectory data..."
+# python PreprocCabData.py
+# python SelectCabData.py
+# for EPS in 0.001 0.003 0.01 0.03 0.1; do
+for EPS in 0.001 0.003 0.01; do
+    echo "Runing taxi trajectory privatization with eps = ${EPS}"
+    python TaxiTrajectory.py $EPS 1 > results/taxi_${EPS}_cmd.log
+    mv results/taxi_${EPS}_cmd.log results/TaxiTrajectory/taxi_${EPS}/taxi_${EPS}_cmd.log
+    for SAMPLE in 0.1 0.2; do
+        for WINDOW in 0.05 0.1; do
+            echo "Running taxi trajectory baseline with eps = ${EPS}, sample rate ${SAMPLE}, and window scale ${WINDOW}..."
+            python Baseline.py Taxi $EPS $SAMPLE $WINDOW
+        done
+    done
+done
+echo "Collecting taxi trajecotry result statistics..."
+# python ExptStats.py Taxi > results/TaxiTrajectorySummary.txt
 
-python Baseline.py Taxi 0.001 0.1 0.05
-python Baseline.py Taxi 0.01 0.1 0.05
-python Baseline.py Taxi 0.1 0.1 0.05
-python Baseline.py Taxi 1 0.1 0.05
-
-python Baseline.py ECG 0.25 0.1 0.05
-python Baseline.py ECG 0.5 0.1 0.05
-python Baseline.py ECG 1 0.1 0.05
-python Baseline.py ECG 2 0.1 0.05
-python Baseline.py ECG 4 0.1 0.05
-
-python ECG.py 0.25 20 > results/ECG_0.25_20_cmd.log
-python ECG.py 0.5 20 > results/ECG_0.5_20_cmd.log
-python ECG.py 1 20 > results/ECG_1.0_20_cmd.log
-python ECG.py 2 20 > results/ECG_2.0_20_cmd.log
-python ECG.py 4 20 > results/ECG_4.0_20_cmd.log
+for EPS in 0.25 0.5 1.0 2.0 4.0; do
+    echo "Runing ECG privatization with eps = ${EPS}"
+    # python ECG.py $EPS 20 > results/ECG_${EPS}_20_cmd.log
+    # mv results/ECG_${EPS}_20_cmd.log results/ECG/ECG_${EPS}_16x50/ECG_${EPS}_20_cmd.log
+    for SAMPLE in 0.1 0.2; do
+        for WINDOW in 0.05 0.1; do
+            echo "Running ECG baseline with eps = ${EPS}, sample rate ${SAMPLE}, and window scale ${WINDOW}..."
+            python Baseline.py ECG $EPS $SAMPLE $WINDOW
+        done
+    done
+done
+echo "Collecting ECG result statistics..."
+# python ExptStats.py ECG > results/ECGSummary.txt

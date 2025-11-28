@@ -37,31 +37,19 @@ def Lap(scale, dim = 1):
     return noise
 
 if bench in ['t', 'T', 'taxi', 'Taxi']:
-    timer = time.time()
-    df = pd.read_pickle("cabspottingdata/trajectory.pkl")
-    print(f"Datasets loaded in {time.time()-timer:.2f} sec.")
-    print(f"Total # of datapoints: {np.sum([len(df['t'][i]) for i in range(len(df))])}")
-
-    timer = time.time()
+    df = pd.read_pickle("cabspottingdata/trajectory_selected.pkl")
     for i in tqdm(range(len(df))):
-        j = 0; start = 0; end = 0
-        while start < len(df['t'][i]):
-            iter_timer = time.time(); end = start
-            while df['t'][i][start].date() == df['t'][i][end].date():
-                if end+1 < len(df['t'][i]): end += 1
-                else: break
-            t = df['t'][i][start:end]
+        for j in range(len(df['t'][i])):
+            iter_timer = time.time()
+            t = df['t'][i][j]
             t = np.array([(cur-t[0]).total_seconds() for cur in t])
-            if end-start <= 10 or t[-1]-t[0] < UNIT_TIME_SCALE:
-                start = end+1
-                continue
             eps = EPS/UNIT_TIME_SCALE*(t[-1]-t[0])
-            x = np.array(df['x'][i][start:end])
-            y = np.array(df['y'][i][start:end])
+            x = np.array(df['x'][i][j])
+            y = np.array(df['y'][i][j])
             min_x = np.min(x); x -= min_x
             min_y = np.min(y); y -= min_y
 
-            SAMPLE = int(len(t)*SAMPLE_RATE)
+            SAMPLE = max(int(len(t)*SAMPLE_RATE), 2)
             WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
 
             filename = df['filename'][i].removeprefix("new_").removesuffix(".txt")
@@ -104,16 +92,11 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
                 err_smooth += sqrInt(t, y, y_smooth_pts)
                 err_smooth = np.sqrt(err_smooth)
                 res_file.write(f"{err_smooth} {smooth_time}\n\n")
-
             res_file.close()
-            start = end+1
-            j += 1
-        # break   # sample: run only the first dataset
-    print(f"Total time elapsed: {time.time()-timer:.2f} sec.")
+        # if i == 2: break   # sample: run only the first three datasets
 
 elif bench in ['e', 'E', 'ecg', 'ECG']:
     records = []
-    timer = time.time()
     min_val = 0; max_val = 0
     for i in range(1, 21838):
     # for i in range (1, 21):  # sample: run only the first 20 records
@@ -127,10 +110,7 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
             max_val = max(max_val, np.max(record.p_signal[:, 1])*VAL_SCALE)
         except:
             pass
-    print(f"{len(records)} records loaded in {time.time()-timer:.2f} sec.")
-    print(f"Each {records[0][2].p_signal.shape[0]} datapoints, sampled at frequency {records[0][2].fs} Hz.")
 
-    timer = time.time()
     for folder, file, record in tqdm(records, position = 0, leave = True):
         iter_timer = time.time()
         n = record.p_signal.shape[0]
@@ -169,7 +149,6 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
             err_smooth = np.sqrt(sqrInt(t, val, val_smooth_pts))
             res_file.write(f"{err_smooth} {smooth_time}\n\n")
         res_file.close()
-    print(f"Total time elapsed: {time.time()-timer:.2f} sec.")
 
 else:
     print(f"No such benchmark {bench}!")

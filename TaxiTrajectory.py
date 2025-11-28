@@ -6,51 +6,46 @@ from tqdm import tqdm
 
 EPS = 0.01
 UNIT_TIME_SCALE = 43200
-SVT_THRESHOLD_FACTOR = 1000
+SVT_THRESHOLD_SCALE = 1.0
 repeat = 20
 parallel = None
 interactive = True
 
 if len(sys.argv) > 1:
     EPS = float(sys.argv[1])
-    SVT_THRESHOLD_FACTOR = float(sys.argv[2])
-    if SVT_THRESHOLD_FACTOR.is_integer():
-        SVT_THRESHOLD_FACTOR = int(SVT_THRESHOLD_FACTOR)
+    SVT_THRESHOLD_SCALE = float(sys.argv[2])
     parallel = False
     interactive = False
     # interactive = True
 
 timer = time.time()
-df = pd.read_pickle("cabspottingdata/trajectory.pkl")
+df = pd.read_pickle("cabspottingdata/trajectory_selected.pkl")
 print("="*80)
 print(f"Datasets loaded in {time.time()-timer:.2f} sec.")
-print(f"Total # of datapoints: {np.sum([len(df['t'][i]) for i in range(len(df))])}")
+print(f"Total # of curves: {np.sum([len(df['t'][i]) for i in range(len(df))])}")
 print("="*80)
 
 if len(sys.argv) == 1:
     str = input("Privacy budget per 12h (default 0.01):\t")
     if str != "": EPS = float(str)
+    str = input("SVT threshold scale (default 1):\t")
+    if str != "": SVT_THRESHOLD_SCALE = float(str)
     parallel = input("Enable multiprocessing? [y/N]\t")
     parallel = parallel in ["Y", "y"]
+
+if SVT_THRESHOLD_SCALE.is_integer():
+    SVT_THRESHOLD_SCALE = int(SVT_THRESHOLD_SCALE)
 
 timer = time.time()
 # for i in range(len(df)):
 for i in tqdm(range(len(df))):
-    j = 0; start = 0; end = 0
-    while start < len(df['t'][i]):
-        iter_timer = time.time(); end = start
-        while df['t'][i][start].date() == df['t'][i][end].date():
-            if end+1 < len(df['t'][i]): end += 1
-            else: break
-        t = np.array(df['t'][i][start:end])
-        t = [(cur-t[0]).total_seconds() for cur in t]
-        if end-start <= 10 or t[-1]-t[0] < UNIT_TIME_SCALE:
-            start = end+1
-            continue
+    for j in range(len(df['t'][i])):
+        iter_timer = time.time()
+        t = df['t'][i][j]
+        t = np.array([(cur-t[0]).total_seconds() for cur in t])
         eps = EPS/UNIT_TIME_SCALE*(t[-1]-t[0])
-        scale = (t[-1]-t[0])/UNIT_TIME_SCALE
-        x = np.array(df['x'][i][start:end])
-        y = np.array(df['y'][i][start:end])
+        x = np.array(df['x'][i][j])
+        y = np.array(df['y'][i][j])
         min_x = np.min(x); x -= min_x
         min_y = np.min(y); y -= min_y
         func = time_series_func_2D(t, x, y)
@@ -58,7 +53,7 @@ for i in tqdm(range(len(df))):
         approx_timer = time.time()
         solver = adaptive_approx(func = func, interval = (t[0], t[-1]), 
                                  basis = 'Linear-2D', degree = 1, eps = eps, 
-                                 SVT_threshold_scale = scale*SVT_THRESHOLD_FACTOR, 
+                                 SVT_threshold_scale = SVT_THRESHOLD_SCALE, 
                                  time_series = time_series, parallel = parallel)
         approx_time = time.time()-iter_timer
         err_ls = solver.eval('Approx')
@@ -66,7 +61,7 @@ for i in tqdm(range(len(df))):
         priv_loss = solver.evalPrivLoss()
 
         if interactive:
-            print(f"Time range: {t[-1]-t[0]} sec ({scale:.2f} units); eps = {eps:.8f}.")
+            print(f"Time range: {t[-1]-t[0]} sec; eps = {eps}.")
             approx = solver.createApprox(); approx_res = approx(t)
             approx_t_x = approx_res[:, 0]; approx_t_y = approx_res[:, 1]
             priv = solver.createPriv(); priv_res = priv(t)
@@ -150,12 +145,9 @@ for i in tqdm(range(len(df))):
             res_file.close()
             print(f"Dataset #{i+1} batch #{j+1} done. Executed in {time.time()-iter_timer:.2f} sec.", flush = True)
 
-        start = end+1
-        j += 1
-
     if interactive:
         break
-    # break   # sample: run only the first dataset
+    # if i == 2: break   # sample: run only the first three datasets
 
 if not interactive:
     dir = f"results/TaxiTrajectory/taxi_{EPS}/"
