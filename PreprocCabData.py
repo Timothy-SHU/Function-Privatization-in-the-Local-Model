@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 from datetime import datetime
+from tqdm import tqdm
 
 UNIT = 1000
 EARTH_RADIUS = 6371*UNIT
@@ -14,7 +15,7 @@ def convert_coord(lat, long):
 
 filename_list = []
 x_list = []; y_list = []; t_list = []
-for filename in sorted(os.listdir("cabspottingdata")):
+for filename in tqdm(sorted(os.listdir("cabspottingdata"))):
     if filename != "_cabs.txt" and filename != "README" and filename != "trajectory.pkl":
         track = pd.read_csv("cabspottingdata/"+filename, header = None, sep = '\s+')
         filename_list.append(filename)

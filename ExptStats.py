@@ -11,8 +11,6 @@ repeat = 20
 def getStats(filename, isBaseline = False, smoothed = False):
     file = open(filename, 'r')
     buffer = [float(x) for x in file.read().strip().split()]
-    if filename == "results/TaxiTrajectory/taxi_bl_0.001_0.1_0.1/effneomi/effneomi-22.txt":
-        print(buffer)
     meta = buffer[:2]; buffer = buffer[2:]
     funcL2 = buffer[0]; buffer = buffer[1:]
     if not isBaseline:
@@ -65,8 +63,8 @@ def getTaxiRes(EPS, SMOOTHED):
     total_units = df['total length of time'].sum()/UNIT_TIME_SCALE
     print("="*120)
     print("Taxi Trajectory Dataset (units: t -- second, x/y -- meter)")
-    print(f"Privacy budget: {EPS} per 12h; {int(total_units)} curves in total.")
-    print("Below are average statistics per 12h.")
+    print(f"Privacy budget: {EPS} per curve; {int(total_units)} curves in total.")
+    print("Below are average statistics per curve (12h time range).")
     print("-"*120)
     total_units = df['total length of time'].sum()/UNIT_TIME_SCALE
     print(f'''{f"avg ||f|| = {df['func L2'].sum()/total_units:>14.5f}.":>36}''')
@@ -165,7 +163,8 @@ def getECGBLRes(EPS, SAMPLE_RATE, WINDOW_SCALE):
             stats_avg += np.array([stats[0]]+stats[3:])
             stats_total += np.array([stats[0]]+stats[3:])
             num_rec += 1
-        stats_avg /= num_rec
+        if num_rec > 0:
+            stats_avg /= num_rec
         total_rec += num_rec
         df.loc[i] = {'folder': folder[:-1], '# records': num_rec, 
                      'eps (per record)': EPS, 'avg func L2': stats_avg[0], 
@@ -188,7 +187,7 @@ if sys.argv[1] in ["t", "T", "taxi", "Taxi"]:
     for EPS in [0.001, 0.003, 0.01, 0.03, 0.1]:
         getTaxiRes(EPS, True)
         for SAMPLE_RATE in [0.1, 0.2]:
-            for WINDOW_SCALE in [0.05, 0.01]:
+            for WINDOW_SCALE in [0.05, 0.1]:
                 getTaxiBLRes(EPS, SAMPLE_RATE, WINDOW_SCALE)
         print("="*120+"\n")
 
@@ -196,6 +195,6 @@ elif sys.argv[1] in ["e", "E", "ecg", "ECG"]:
     for EPS in [0.25, 0.5, 1.0, 2.0, 4.0]:
         getECGRes(EPS, 20, False)
         for SAMPLE_RATE in [0.1, 0.2]:
-            for WINDOW_SCALE in [0.05, 0.01]:
+            for WINDOW_SCALE in [0.05, 0.1]:
                 getECGBLRes(EPS, SAMPLE_RATE, WINDOW_SCALE)
         print("="*120+"\n")

@@ -1,6 +1,7 @@
 import os, sys, time, shutil
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 timer = time.time()
 df = pd.read_pickle("cabspottingdata/trajectory.pkl")
@@ -10,7 +11,7 @@ print(f"Total # of datapoints: {np.sum([len(df['t'][i]) for i in range(len(df))]
 print("="*50)
 
 new_t = []; new_x = []; new_y = []
-for i in range(len(df)):
+for i in tqdm(range(len(df))):
     start = 0; end = 0
     cnt_valid = 0; cnt_invalid = 0
     new_t.append([])

@@ -1,8 +1,10 @@
 import numpy as np
 import cvxpy as cp
 import matplotlib.pyplot as plt
+from scipy import sparse
 from scipy.special import sici
 from scipy.stats import laplace, gamma
+from scipy.sparse.linalg import spsolve
 from scipy.linalg import inv, pinv, sqrtm, block_diag
 from scipy.integrate import quad, quad_vec, IntegrationWarning
 from pathos.multiprocessing import ProcessingPool
@@ -265,7 +267,7 @@ class PrivatePiecewiseApprox:
             logging.error(f"ERR: no such method '{method}'.")
         # logging.info("noise = %s", self.noise)
 
-    def smooth(self):
+    def smooth(self, method = 'Sparse-KKT'):
         if self.m == 1: return
         if self.isOrthonormal:
             M = np.eye(self.m*self.d)
@@ -284,13 +286,28 @@ class PrivatePiecewiseApprox:
                 else:
                     C[i, i*self.d+j] = self.basis[i][j](self.breakpoints[i+1])
                     C[i, (i+1)*self.d+j] = -self.basis[i+1][j](self.breakpoints[i+1])
-        y = cp.Variable(self.m*self.d)
-        QP = cp.Problem(cp.Minimize((1/2)*cp.quad_form(y, M)+q@y), 
-                        [C@y == np.zeros(C.shape[0])])
-        QP.solve()
-        for i in range(self.m):
-            for j in range(self.d):
-                self.noise[i, j] = y.value[i*self.d+j]-self.coeff[i, j]
+        if method == 'CVXPY':
+            y = cp.Variable(self.m*self.d)
+            QP = cp.Problem(cp.Minimize((1/2)*cp.quad_form(y, M)+q@y), 
+                            [C@y == np.zeros(C.shape[0])])
+            QP.solve()
+            for i in range(self.m):
+                for j in range(self.d):
+                    self.noise[i, j] = y.value[i*self.d+j]-self.coeff[i, j]
+        elif method == 'Sparse-KKT':
+            n = M.shape[0]; m = C.shape[0]
+            M_sp = sparse.csc_matrix(M)
+            C_sp = sparse.csc_matrix(C)
+            KKT_upper = sparse.hstack([M_sp, C_sp.T])
+            KKT_lower = sparse.hstack([C_sp, sparse.csc_matrix((m, m))])
+            KKT = sparse.vstack([KKT_upper, KKT_lower]).tocsc()
+            RHS = np.concatenate([-q, np.zeros(C.shape[0])])
+            y = spsolve(KKT, RHS)[:n]
+            for i in range(self.m):
+                for j in range(self.d):
+                    self.noise[i, j] = y[i*self.d+j]-self.coeff[i, j]
+        else:
+            print(f"ERR: no such method '{method}'.")
     
     def createApprox(self):
         if self.func == None:

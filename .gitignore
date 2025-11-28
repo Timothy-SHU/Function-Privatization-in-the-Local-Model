@@ -17,6 +17,7 @@ results/ECG/*
 archived/taxi*
 archived/ECG*
 !archived/*.zip
+!archived/*.tar.xz
 
 *.swp
 info.log

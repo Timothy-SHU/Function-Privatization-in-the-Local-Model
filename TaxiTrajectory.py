@@ -143,7 +143,7 @@ for i in tqdm(range(len(df))):
                 smooth_loss = solver.evalPrivLoss()
                 res_file.write(f"{smooth_loss} {err_smooth} {smooth_time}\n\n")
             res_file.close()
-            print(f"Dataset #{i+1} batch #{j+1} done. Executed in {time.time()-iter_timer:.2f} sec.", flush = True)
+            print(f"Dataset #{i+1} curve #{j+1} done. Executed in {time.time()-iter_timer:.2f} sec.", flush = True)
 
     if interactive:
         break
