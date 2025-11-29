@@ -10,6 +10,7 @@ print(f"Datasets loaded in {time.time()-timer:.2f} sec.")
 print(f"Total # of datapoints: {np.sum([len(df['t'][i]) for i in range(len(df))])}")
 print("="*50)
 
+cnt_rec_per_day = {}
 new_t = []; new_x = []; new_y = []
 for i in tqdm(range(len(df))):
     start = 0; end = 0
@@ -49,8 +50,13 @@ for i in tqdm(range(len(df))):
         t = t[lidx:ridx+1]; new_t[-1].append(t)
         x = x[lidx:ridx+1]; new_x[-1].append(x)
         y = y[lidx:ridx+1]; new_y[-1].append(y)
+        if (t[0].month, t[0].day) in cnt_rec_per_day:
+            cnt_rec_per_day[(t[0].month, t[0].day)] += 1
+        else:
+            cnt_rec_per_day[(t[0].month, t[0].day)] = 1
         start = end+1
     print(f"Dataset {df['filename'][i]}: selected {cnt_valid} out of {cnt_valid+cnt_invalid} curves.")
+print(cnt_rec_per_day)
 
 new_df = pd.DataFrame({'filename': df['filename'], 't': new_t, 'x': new_x, 'y': new_y})
 new_df.to_pickle("cabspottingdata/trajectory_selected.pkl")

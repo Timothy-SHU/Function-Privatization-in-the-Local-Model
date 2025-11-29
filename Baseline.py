@@ -38,7 +38,9 @@ def Lap(scale, dim = 1):
 
 if bench in ['t', 'T', 'taxi', 'Taxi']:
     df = pd.read_pickle("cabspottingdata/trajectory_selected.pkl")
-    for i in tqdm(range(len(df))):
+    pbar = tqdm(total = np.sum([len(df['t'][i]) for i in range(len(df))]))
+    for i in range(len(df)):
+    # for i in tqdm(range(len(df))):
         for j in range(len(df['t'][i])):
             iter_timer = time.time()
             t = df['t'][i][j]
@@ -50,7 +52,7 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
             min_y = np.min(y); y -= min_y
 
             SAMPLE = max(int(len(t)*SAMPLE_RATE), 2)
-            WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
+            WINDOW = max(int(SAMPLE*WINDOW_SCALE/2), 1)
 
             filename = df['filename'][i].removeprefix("new_").removesuffix(".txt")
             dir = f"results/TaxiTrajectory/taxi_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}/{filename}/"
@@ -92,7 +94,7 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
                 err_smooth += sqrInt(t, y, y_smooth_pts)
                 err_smooth = np.sqrt(err_smooth)
                 res_file.write(f"{err_smooth} {smooth_time}\n\n")
-            res_file.close()
+            res_file.close(); pbar.update(1)
         # if i == 2: break   # sample: run only the first three datasets
 
 elif bench in ['e', 'E', 'ecg', 'ECG']:

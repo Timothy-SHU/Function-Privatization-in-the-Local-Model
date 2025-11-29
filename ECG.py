@@ -122,14 +122,12 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
             err_priv = solver.eval('Priv')
             priv_loss = solver.evalPrivLoss()
             res_file.write(f"{priv_loss} {err_priv} {priv_time}\n")
-            """
             smooth_timer = time.time()
             solver.smooth()
             smooth_time = time.time()-smooth_timer
             err_smooth = solver.eval('Priv')
             smooth_loss = solver.evalPrivLoss()
             res_file.write(f"{smooth_loss} {err_smooth} {smooth_time}\n")
-            """
             res_file.write("\n")
         res_file.close()
         print(f"Record {file} done. Executed in {time.time()-iter_timer:.2f} sec.", flush = True)

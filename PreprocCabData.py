@@ -40,8 +40,4 @@ for filename in tqdm(sorted(os.listdir("cabspottingdata"))):
                     y_list[-1].append(y)
                     t_list[-1].append(t)
 df = pd.DataFrame({'filename': filename_list, 't': t_list, 'x': x_list, 'y': y_list})
-df['x_min'] = df['x'].apply(min)
-df['x_max'] = df['x'].apply(max)
-df['y_min'] = df['y'].apply(min)
-df['y_max'] = df['y'].apply(max)
 df.to_pickle("cabspottingdata/trajectory.pkl")

@@ -16,9 +16,9 @@ echo "Collecting taxi trajecotry result statistics..."
 python ExptStats.py Taxi > results/TaxiTrajectorySummary.txt
 
 for EPS in 0.25 0.5 1.0 2.0 4.0; do
-    # echo "Runing ECG privatization with eps = ${EPS}"
-    # python ECG.py $EPS 20 > results/ECG_${EPS}_20_cmd.log
-    # mv results/ECG_${EPS}_20_cmd.log results/ECG/ECG_${EPS}_16x50/ECG_${EPS}_20_cmd.log
+    echo "Runing ECG privatization with eps = ${EPS}"
+    python ECG.py $EPS 20 > results/ECG_${EPS}_20_cmd.log
+    mv results/ECG_${EPS}_20_cmd.log results/ECG/ECG_${EPS}_16x50/ECG_${EPS}_20_cmd.log
     for SAMPLE in 0.1 0.2; do
         for WINDOW in 0.05 0.1; do
             echo "Running ECG baseline with eps = ${EPS}, sample rate ${SAMPLE}, and window scale ${WINDOW}..."

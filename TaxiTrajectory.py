@@ -37,8 +37,9 @@ if SVT_THRESHOLD_SCALE.is_integer():
     SVT_THRESHOLD_SCALE = int(SVT_THRESHOLD_SCALE)
 
 timer = time.time()
-# for i in range(len(df)):
-for i in tqdm(range(len(df))):
+pbar = tqdm(total = np.sum([len(df['t'][i]) for i in range(len(df))]))
+for i in range(len(df)):
+# for i in tqdm(range(len(df))):
     for j in range(len(df['t'][i])):
         iter_timer = time.time()
         t = df['t'][i][j]
@@ -50,23 +51,23 @@ for i in tqdm(range(len(df))):
         min_y = np.min(y); y -= min_y
         func = time_series_func_2D(t, x, y)
         time_series = (t, np.column_stack((x, y)))
-        approx_timer = time.time()
-        solver = adaptive_approx(func = func, interval = (t[0], t[-1]), 
-                                 basis = 'Linear-2D', degree = 1, eps = eps, 
-                                 SVT_threshold_scale = SVT_THRESHOLD_SCALE, 
-                                 time_series = time_series, parallel = parallel)
-        approx_time = time.time()-iter_timer
-        err_ls = solver.eval('Approx')
-        err_priv = solver.eval('Priv')
-        priv_loss = solver.evalPrivLoss()
 
         if interactive:
-            print(f"Time range: {t[-1]-t[0]} sec; eps = {eps}.")
+            approx_timer = time.time()
+            solver = adaptive_approx(func = func, interval = (t[0], t[-1]), 
+                                    basis = 'Linear-2D', degree = 1, eps = eps, 
+                                    SVT_threshold_scale = SVT_THRESHOLD_SCALE, 
+                                    time_series = time_series, parallel = parallel)
+            approx_time = time.time()-approx_timer
+            err_ls = solver.eval('Approx')
+            err_priv = solver.eval('Priv')
+            priv_loss = solver.evalPrivLoss()
             approx = solver.createApprox(); approx_res = approx(t)
             approx_t_x = approx_res[:, 0]; approx_t_y = approx_res[:, 1]
             priv = solver.createPriv(); priv_res = priv(t)
             priv_t_x = priv_res[:, 0]; priv_t_y = priv_res[:, 1]
 
+            print(f"Time range: {t[-1]-t[0]} sec; eps = {eps}.")
             plt.subplot(1, 2, 1)
             plt.plot(x+min_x, y+min_y, color = 'black')
             for k in range(len(solver.breakpoints)-1):
@@ -127,14 +128,24 @@ for i in tqdm(range(len(df))):
             os.makedirs(dir, exist_ok = True)
             res_file = open(dir+f"{filename}-{j+1}.txt", 'w')
             res_file.write(f"{t[-1]-t[0]} {eps}\n")
-            res_file.write(f"{np.sqrt(solver.funcSqrInt)}\n")
-            res_file.write(f"{err_ls} {approx_time}\n\n")
             for k in range(repeat):
+                approx_timer = time.time()
+                solver = adaptive_approx(func = func, interval = (t[0], t[-1]), 
+                                         basis = 'Linear-2D', degree = 1, eps = eps, 
+                                         SVT_threshold_scale = SVT_THRESHOLD_SCALE, 
+                                         time_series = time_series, parallel = parallel)
+                approx_time = time.time()-approx_timer
+                err_ls = solver.eval('Approx')
+                err_priv = solver.eval('Priv')
+                priv_loss = solver.evalPrivLoss()
                 priv_timer = time.time()
                 solver.privatize(eps)
                 priv_time = time.time()-priv_timer
                 err_priv = solver.eval('Priv')
                 priv_loss = solver.evalPrivLoss()
+                if k == 0:
+                    res_file.write(f"{np.sqrt(solver.funcSqrInt)}\n\n")
+                res_file.write(f"{err_ls} {approx_time}\n")
                 res_file.write(f"{priv_loss} {err_priv} {priv_time}\n")
                 smooth_timer = time.time()
                 solver.smooth()
@@ -144,9 +155,9 @@ for i in tqdm(range(len(df))):
                 res_file.write(f"{smooth_loss} {err_smooth} {smooth_time}\n\n")
             res_file.close()
             print(f"Dataset #{i+1} curve #{j+1} done. Executed in {time.time()-iter_timer:.2f} sec.", flush = True)
+            pbar.update(1)
 
-    if interactive:
-        break
+    if interactive: break
     # if i == 2: break   # sample: run only the first three datasets
 
 if not interactive:
