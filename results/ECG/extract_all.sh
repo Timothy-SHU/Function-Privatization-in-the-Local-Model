@@ -1,4 +1,3 @@
-for file in *.tar.gz; do
-	mkdir 
-	tar -xzvf "$file"
+for arch in *.tar.gz; do
+	tar -xzvf "$arch"
 done

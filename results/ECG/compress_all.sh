@@ -1,3 +1,3 @@
-for file in */; do
-	tar -czvf "${file%/}.tar.gz" "$file"
+for dir in */; do
+	tar --exclude="${dir}info.log" -czvf "${dir%/}.tar.gz" "$dir"
 done
