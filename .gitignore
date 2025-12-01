@@ -10,8 +10,10 @@ ptb-xl/records100/*
 ptb-xl/records500/*
 
 results/TaxiTrajectory/*
+!results/TaxiTrajectory/*.tar.gz
 !results/TaxiTrajectory/*.tar.xz
 results/ECG/*
+!results/ECG/*.tar.gz
 !results/ECG/*.tar.xz
 
 archived/taxi*
