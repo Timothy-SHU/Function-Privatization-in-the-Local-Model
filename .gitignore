@@ -9,17 +9,11 @@ ptb-xl/records100/*
 !ptb-xl/records100/00000
 ptb-xl/records500/*
 
-results/TaxiTrajectory/*
-!results/TaxiTrajectory/*.tar.gz
-!results/TaxiTrajectory/*.tar.xz
-results/ECG/*
-!results/ECG/*.tar.gz
-!results/ECG/*.tar.xz
+results/TaxiTrajectory/*/
+results/ECG/*/
 
-archived/taxi*
-archived/ECG*
-!archived/*.zip
-!archived/*.tar.xz
+archived/taxi*/
+archived/ECG*/
 
 *.swp
 info.log
