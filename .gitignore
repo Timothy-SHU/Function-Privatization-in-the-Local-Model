@@ -1,7 +1,3 @@
-archived/taxi.csv
-archived/covid-19-data
-archived/ecg-spider-clip
-
 cabspottingdata/trajectory.pkl
 cabspottingdata/trajectory_selected.pkl
 
@@ -12,8 +8,9 @@ ptb-xl/records500/*
 results/TaxiTrajectory/*/
 results/ECG/*/
 
-archived/taxi*/
-archived/ECG*/
+archived/datasets/
+archived/results/results 1201/TaxiTrajectory/*/
+archived/results/results 1201/ECG/*/
 
 *.swp
 info.log
