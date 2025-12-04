@@ -5,15 +5,17 @@ from AdaptApprox import *
 from tqdm import tqdm
 
 EPS = 0.01
+METHOD = 'Laplace'
 UNIT_TIME_SCALE = 43200
 SVT_THRESHOLD_SCALE = 1.0
-repeat = 20
+repeat = 10
 parallel = None
 interactive = True
 
 if len(sys.argv) > 1:
-    EPS = float(sys.argv[1])
-    SVT_THRESHOLD_SCALE = float(sys.argv[2])
+    METHOD = str(sys.argv[1])
+    EPS = float(sys.argv[2])
+    SVT_THRESHOLD_SCALE = float(sys.argv[3])
     parallel = False
     interactive = False
     # interactive = True
@@ -28,8 +30,8 @@ print("="*80)
 if len(sys.argv) == 1:
     str = input("Privacy budget per 12h (default 0.01):\t")
     if str != "": EPS = float(str)
-    str = input("SVT threshold scale (default 1):\t")
-    if str != "": SVT_THRESHOLD_SCALE = float(str)
+    # str = input("SVT threshold scale (default 1):\t")
+    # if str != "": SVT_THRESHOLD_SCALE = float(str)
     parallel = input("Enable multiprocessing? [y/N]\t")
     parallel = parallel in ["Y", "y"]
 
@@ -55,7 +57,8 @@ for i in range(len(df)):
         if interactive:
             approx_timer = time.time()
             solver = adaptive_approx(func = func, interval = (t[0], t[-1]), 
-                                    basis = 'Linear-2D', degree = 1, eps = eps, 
+                                    basis = 'Linear-2D', degree = 1, 
+                                    eps = eps, beta = 0.1, method = METHOD, 
                                     SVT_threshold_scale = SVT_THRESHOLD_SCALE, 
                                     time_series = time_series, parallel = parallel)
             approx_time = time.time()-approx_timer
@@ -126,12 +129,13 @@ for i in range(len(df)):
             filename = df['filename'][i].removeprefix("new_").removesuffix(".txt")
             dir = f"results/TaxiTrajectory/taxi_{EPS}/{filename}/"
             os.makedirs(dir, exist_ok = True)
-            res_file = open(dir+f"{filename}-{j+1}.txt", 'w')
+            res_file = open(dir+f"{filename}-{j+1}_{METHOD}.txt", 'w')
             res_file.write(f"{t[-1]-t[0]} {eps}\n")
             for k in range(repeat):
                 approx_timer = time.time()
                 solver = adaptive_approx(func = func, interval = (t[0], t[-1]), 
-                                         basis = 'Linear-2D', degree = 1, eps = eps, 
+                                         basis = 'Linear-2D', degree = 1, 
+                                         eps = eps, beta = 0.1, method = METHOD, 
                                          SVT_threshold_scale = SVT_THRESHOLD_SCALE, 
                                          time_series = time_series, parallel = parallel)
                 approx_time = time.time()-approx_timer
@@ -139,7 +143,7 @@ for i in range(len(df)):
                 err_priv = solver.eval('Priv')
                 priv_loss = solver.evalPrivLoss()
                 priv_timer = time.time()
-                solver.privatize(eps)
+                solver.privatize(eps, METHOD)
                 priv_time = time.time()-priv_timer
                 err_priv = solver.eval('Priv')
                 priv_loss = solver.evalPrivLoss()
@@ -158,10 +162,10 @@ for i in range(len(df)):
             pbar.update(1)
 
     if interactive: break
-    # if i == 2: break   # sample: run only the first three datasets
+    if i == 19: break   # sample: run only the first twenty datasets
 
 if not interactive:
     dir = f"results/TaxiTrajectory/taxi_{EPS}/"
     os.makedirs(dir, exist_ok = True)
-    shutil.copyfile("info.log", dir+"info.log")
+    shutil.copyfile("info.log", dir+f"info_{METHOD}.log")
     print(f"Total time elapsed: {time.time()-timer:.2f} sec.")

@@ -7,16 +7,15 @@ logging.basicConfig(filename = 'info.log', filemode = 'w', level = logging.INFO)
 def reduce_seg(func, interval, basis, degree, 
                k0, k, total_eps, eps, beta, 
                time_series = None, parallel = False):
-    if k == 0:
-        return np.array(interval), total_eps
+    if k == 0: return np.array(interval), total_eps
     breakpoints = np.linspace(interval[0], interval[1], (2**k)+1)
     solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
     solver.fit(func, time_series, parallel)
     err = solver.eval('Approx')
     noise = laplace.rvs(scale = 1/eps)
     total_eps = total_eps-eps
-    logging.info(f"ReduceSeg at interval {interval} with breakpoints {breakpoints}:\n"+
-                 f"\tB = {total_eps:.5f}, eps = {eps:.5f}, err = {err:.5f}, noise = {noise:.5f}, "+
+    logging.info(f"ReduceSeg at interval {interval}:"+
+                 f"B = {total_eps:.5f}, eps = {eps:.5f}, err = {err:.5f}, noise = {noise:.5f}, "+
                  f"offset = {(np.log(2)*k0-np.log(1/beta))/eps:.5f}; "+
                  f"Proceed? {err+noise+(np.log(2)*k0-np.log(1/beta))/eps <= 2**(k-1)}.")
     
@@ -33,7 +32,7 @@ def reduce_seg(func, interval, basis, degree,
 
 def adaptive_approx(func, interval, basis = 'Polynomial', degree = 1, 
                     eps = 1, beta = 0.1, method = 'Laplace', SVT_threshold_scale = 1, 
-                    time_series = None, parallel = False, enable_reduce_seg = False):
+                    time_series = None, parallel = False, enable_reduce_seg = True):
     logging.info("="*100)
     logging.info(f"Adaptive Private Function Approximation with degree-{degree} polynomials (eps = {eps}, beta = {beta})")
     # SVT using eps/4 privacy quota (eps_1 = eps/12, eps_2 = eps/6)
@@ -56,9 +55,7 @@ def adaptive_approx(func, interval, basis = 'Polynomial', degree = 1,
     B = 3*eps/4
     if enable_reduce_seg:
         k0 = min(k_bar-2, 4)
-        if k0 == 1:
-            breakpoints = np.linspace(interval[0], interval[1], (2**k_bar)+1)
-        else:
+        if k0 >= 2:
             # recursively merge pieces in subintervals
             # 3/4*eps privacy quota left, each quad-interval consumes 1/16*eps quota
             # then there will be at least 1/2*eps quota left for final privatization
@@ -67,11 +64,11 @@ def adaptive_approx(func, interval, basis = 'Polynomial', degree = 1,
                 pts, B = reduce_seg(func, (interval[0]+(interval[1]-interval[0])*i/4, interval[0]+(interval[1]-interval[0])*(i+1)/4), 
                                     basis, degree, k0, k_bar-2, B, eps/32, beta, time_series, parallel)
                 breakpoints = np.concatenate((breakpoints[:-1], pts))
-        logging.info(f"Final breakpoints: {breakpoints}, remaining eps = {B:.5f}.")
+            solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
+            solver.fit(func, time_series, parallel)
+        # logging.info(f"Final breakpoints: {breakpoints}, remaining eps = {B:.5f}.")
         logging.info("-"*100)
 
-        solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
-        solver.fit(func, time_series, parallel)
     solver.privatize(B, method)
     logging.info(f"Polynomial approximation (eps = {B:.5f}, degree {solver.degree}):")
     logging.info(f"\tbreakpoints: {solver.breakpoints}.")

@@ -3,16 +3,17 @@ import time, wfdb
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from scipy.stats import laplace, gamma
+from scipy.stats import norm, laplace, gamma
 
 bench = sys.argv[1]
-EPS = float(sys.argv[2])
-SAMPLE_RATE = float(sys.argv[3])
-WINDOW_SCALE = float(sys.argv[4])
+METHOD = sys.argv[2]
+EPS = float(sys.argv[3])
+SAMPLE_RATE = float(sys.argv[4])
+WINDOW_SCALE = float(sys.argv[5])
 TIME_SCALE = 80
 VAL_SCALE = 1000
 UNIT_TIME_SCALE = 43200
-repeat = 20
+repeat = 10
 
 def sqrInt(t, val1, val2):
     ret = 0
@@ -28,12 +29,17 @@ def sqrInt(t, val1, val2):
         ret -= 1/3*(k**2)*(l**3)+k*b*(l**2)+(b**2)*l
     return ret
 
-def Lap(scale, dim = 1):
-    if dim == 1:
-        return laplace.rvs(scale = scale)
-    noise = np.random.randn(dim)
-    noise = noise/np.linalg.norm(noise)
-    noise *= gamma.rvs(a = dim, scale = scale)
+def genNoise(method, scale, dim = 1):
+    if method == 'Laplace':
+        if dim == 1:
+            noise = laplace.rvs(scale = scale)
+        else:
+            noise = np.random.randn(dim)
+            noise = noise/np.linalg.norm(noise)
+            noise *= gamma.rvs(a = dim, scale = scale)
+    elif method == 'Gaussian':
+        if dim == 1: noise = norm.rvs(scale = scale)
+        else: noise = scale*np.random.randn(dim)
     return noise
 
 if bench in ['t', 'T', 'taxi', 'Taxi']:
@@ -57,7 +63,7 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
             filename = df['filename'][i].removeprefix("new_").removesuffix(".txt")
             dir = f"results/TaxiTrajectory/taxi_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}/{filename}/"
             os.makedirs(dir, exist_ok = True)
-            res_file = open(dir+f"{filename}-{j+1}.txt", 'w')
+            res_file = open(dir+f"{filename}-{j+1}_{METHOD}.txt", 'w')
             res_file.write(f"{SAMPLE} {WINDOW*2+1}\n")
             funcSqrInt = sqrInt(t, x, np.zeros(len(t)))
             funcSqrInt += sqrInt(t, y, np.zeros(len(t)))
@@ -69,7 +75,10 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
                 sample = [i in sample for i in range(len(t))]
                 x_priv = x[sample]; y_priv = y[sample]
                 for l in range(SAMPLE):
-                    noise = Lap(SAMPLE/EPS, 2)
+                    if METHOD == 'Laplace':
+                        noise = genNoise(METHOD, SAMPLE/EPS, 2)
+                    elif METHOD == 'Gaussian':
+                        noise = genNoise(METHOD, np.sqrt(SAMPLE/(2*EPS)), 2)
                     x_priv[l] += noise[0]
                     y_priv[l] += noise[1]
                 x_priv_pts = np.interp(t, t[sample], x_priv)
@@ -95,13 +104,14 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
                 err_smooth = np.sqrt(err_smooth)
                 res_file.write(f"{err_smooth} {smooth_time}\n\n")
             res_file.close(); pbar.update(1)
-        # if i == 2: break   # sample: run only the first three datasets
+        if i == 19: break   # sample: run only the first twenty datasets
 
 elif bench in ['e', 'E', 'ecg', 'ECG']:
     records = []
     min_val = 0; max_val = 0
-    for i in range(1, 21838):
-    # for i in range (1, 21):  # sample: run only the first 20 records
+    # for i in range(1, 21838):
+    # for i in range(101):
+    for i in range (1, 21):  # sample: run only the first 20 records
         folder = "{:05d}".format(i//1000*1000)
         file = "{:05d}_lr".format(i)
         path = "ptb-xl/records100/"+folder+"/"+file
@@ -125,7 +135,7 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
 
         dir = f"results/ECG/ECG_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}/{folder}/"
         os.makedirs(dir, exist_ok = True)
-        res_file = open(dir+f"{file}.txt", 'w')
+        res_file = open(dir+f"{file}_{METHOD}.txt", 'w')
         res_file.write(f"{SAMPLE} {WINDOW*2+1}\n")
         funcSqrInt = sqrInt(t, val, np.zeros(len(t)))
         res_file.write(f"{np.sqrt(funcSqrInt)}\n\n")
@@ -135,7 +145,10 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
             sample = [i in sample for i in range(len(t))]
             val_priv = val[sample]
             for i in range(SAMPLE):
-                val_priv[i] += Lap(SAMPLE/EPS)
+                if METHOD == 'Laplace':
+                    val_priv[i] += genNoise(METHOD, SAMPLE/EPS)
+                elif METHOD == 'Gaussian':
+                    val_priv[i] += genNoise(METHOD, np.sqrt(SAMPLE/(2*EPS)))
             val_priv_pts = np.interp(t, t[sample], val_priv)
             priv_time = time.time()-priv_timer
 

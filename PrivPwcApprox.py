@@ -257,11 +257,12 @@ class PrivatePiecewiseApprox:
             if not self.isOrthonormal:
                 for i in range(self.m):
                     self.noise[i] = (sqrtm(self.invG[i])@self.noise[i]).real
-        elif method == 'Normal':
+        elif method == 'Gaussian':
             self.noise = np.random.randn(self.m*self.d)
             self.noise = self.noise.reshape(self.m, self.d)
             if not self.isOrthonormal:
-                self.noise[i] = (sqrtm(self.invG[i])@self.noise[i]).real
+                for i in range(self.m):
+                    self.noise[i] = (sqrtm(self.invG[i])@self.noise[i]).real
             self.noise /= np.sqrt(2*eps)
         else:
             logging.error(f"ERR: no such method '{method}'.")

@@ -46,6 +46,8 @@ for i in tqdm(range(len(df))):
             t[ridx+1] = r; ridx += 1
         if ridx-lidx+1 < 500:
             start = end+1; cnt_invalid += 1; continue
+        if  t[lidx].month != 5 or t[lidx].day != 18:
+            start = end+1; cnt_invalid += 1; continue
         cnt_valid += 1
         t = t[lidx:ridx+1]; new_t[-1].append(t)
         x = x[lidx:ridx+1]; new_x[-1].append(x)
@@ -55,8 +57,8 @@ for i in tqdm(range(len(df))):
         else:
             cnt_rec_per_day[(t[0].month, t[0].day)] = 1
         start = end+1
-    print(f"Dataset {df['filename'][i]}: selected {cnt_valid} out of {cnt_valid+cnt_invalid} curves.")
-print(cnt_rec_per_day)
+    # print(f"Dataset {df['filename'][i]}: selected {cnt_valid} out of {cnt_valid+cnt_invalid} curves.")
+# print(cnt_rec_per_day)
 
 new_df = pd.DataFrame({'filename': df['filename'], 't': new_t, 'x': new_x, 'y': new_y})
 new_df.to_pickle("cabspottingdata/trajectory_selected.pkl")

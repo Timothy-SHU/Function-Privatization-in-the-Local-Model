@@ -1,19 +1,20 @@
-import os, sys, time, shutil, wfdb
+import os, sys, time, wfdb
 from PrivPwcApprox import *
 from tqdm import tqdm
 
-EPS = 1
+EPS = 1.0
 BATCH_SIZE = 20
 TIME_SCALE = 80
 VAL_SCALE = 1000
-repeat = 20
+repeat = 10
 unbounded = None
 parallel = None
 interactive = True
 
 if len(sys.argv) > 1:
-    EPS = float(sys.argv[1])
-    BATCH_SIZE = int(sys.argv[2])
+    METHOD = str(sys.argv[1])
+    EPS = float(sys.argv[2])
+    BATCH_SIZE = int(sys.argv[3])
     unbounded = (BATCH_SIZE == -1)
     parallel = False
     interactive = False
@@ -21,8 +22,9 @@ if len(sys.argv) > 1:
 
 records = []
 timer = time.time()
-for i in range(1, 21838):
-# for i in range (1, 21):  # sample: run only the first 20 records
+# for i in range(1, 21838):
+# for i in range(1, 101): 
+for i in range (1, 21):  # sample: run only the first 20 records
     folder = "{:05d}".format(i//1000*1000)
     file = "{:05d}_lr".format(i)
     path = "ptb-xl/records100/"+folder+"/"+file
@@ -76,7 +78,7 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
     err_ls = solver.eval('Approx')
 
     if interactive:
-        solver.privatize(EPS)
+        solver.privatize(EPS, METHOD)
         approx = solver.createApprox()
         priv = solver.createPriv()
         err_priv = solver.eval('Priv')
@@ -111,13 +113,13 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
     else:
         dir = f"results/ECG/ECG_{EPS}_{BATCH_SIZE*TIME_SCALE//record.fs}x{n//BATCH_SIZE}/{folder}/"
         os.makedirs(dir, exist_ok = True)
-        res_file = open(dir+f"{file}.txt", 'w')
+        res_file = open(dir+f"{file}_{METHOD}.txt", 'w')
         res_file.write(f"{t[-1]-t[0]} {EPS}\n")
         res_file.write(f"{np.sqrt(solver.funcSqrInt)}\n")
         res_file.write(f"{err_ls} {approx_time}\n\n")
         for i in range(repeat):
             priv_timer = time.time()
-            solver.privatize(EPS)
+            solver.privatize(EPS, METHOD)
             priv_time = time.time()-priv_timer
             err_priv = solver.eval('Priv')
             priv_loss = solver.evalPrivLoss()
@@ -133,7 +135,4 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         print(f"Record {file} done. Executed in {time.time()-iter_timer:.2f} sec.", flush = True)
 
 if not interactive:
-    dir = f"results/ECG/ECG_{EPS}_{BATCH_SIZE*TIME_SCALE//record.fs}x{n//BATCH_SIZE}/"
-    os.makedirs(dir, exist_ok = True)
-    shutil.copyfile("info.log", dir+"info.log")
     print(f"Total time elapsed: {time.time()-timer:.2f} sec.")

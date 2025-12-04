@@ -6,7 +6,7 @@ N = 1000
 FREQUENCY = 100
 TIME_SCALE = 80
 UNIT_TIME_SCALE = 43200
-repeat = 20
+repeat = 10
 
 def getStats(filename, isBaseline = False, adaptive = False, smoothed = True):
     file = open(filename, 'r')
@@ -44,7 +44,7 @@ def getStats(filename, isBaseline = False, adaptive = False, smoothed = True):
     if isBaseline or adaptive: return [funcL2] + meta + avg.tolist()
     return [funcL2] + meta + [err_ls, approx_time] + avg.tolist()
 
-def getTaxiRes(EPS):
+def getTaxiRes(METHOD, EPS):
     dir = f"results/TaxiTrajectory/taxi_{EPS}/"
     df = pd.DataFrame(columns = ['name', 'total length of time', 'total eps', 'func L2', 
                                  'approx err', 'priv err', 'priv loss', 'smooth err', 'smooth loss', 
@@ -54,6 +54,7 @@ def getTaxiRes(EPS):
         folder = os.path.basename(subdir.path)+"/"
         funcL2 = None; stats_sum = np.zeros(10)
         for file in os.listdir(dir+folder):
+            if METHOD not in file: continue
             stats = getStats(dir+folder+file, False, True, True)
             if funcL2 == None: funcL2 = stats[0]
             stats_sum += np.array(stats[1:])
@@ -83,7 +84,7 @@ def getTaxiRes(EPS):
     print(f'''{f"avg smooth time = {df['smooth time'].sum()/total_units*1000:>8.5f} ms.":>38}''')
     print(f'''{f"avg total runtime = {df['total runtime'].sum()/total_units*1000:>8.5f} ms.":>120}''')
 
-def getTaxiBLRes(EPS, SAMPLE_RATE, WINDOW_SCALE):
+def getTaxiBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
     dir = f"results/TaxiTrajectory/taxi_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}/"
     df = pd.DataFrame(columns = ['name', 'func L2', 'priv err', 'priv time', 'smooth err', 'smooth time', 'total runtime'])
     total_units = 0
@@ -92,6 +93,7 @@ def getTaxiBLRes(EPS, SAMPLE_RATE, WINDOW_SCALE):
         folder = os.path.basename(subdir.path)+"/"
         funcL2 = None; stats_sum = np.zeros(4)
         for file in os.listdir(dir+folder):
+            if METHOD not in file: continue
             stats = getStats(dir+folder+file, True)
             if funcL2 == None: funcL2 = stats[0]
             stats_sum += np.array(stats[3:])
@@ -112,7 +114,7 @@ def getTaxiBLRes(EPS, SAMPLE_RATE, WINDOW_SCALE):
     print(f'''{f"avg baseline smooth time = {df['smooth time'].sum()/total_units*1000:>8.5f} ms.":>84}''')
     print(f'''{f"avg baseline total runtime = {df['total runtime'].sum()/total_units*1000:>8.5f} ms.":>120}''')
 
-def getECGRes(EPS, BATCH_SIZE):
+def getECGRes(METHOD, EPS, BATCH_SIZE):
     dir = f"results/ECG/ECG_{EPS}_{BATCH_SIZE*TIME_SCALE//FREQUENCY}x{N//BATCH_SIZE}/"
     df = pd.DataFrame(columns = ['folder', '# records', 'eps (per record)', 
                                  'avg func L2', 'avg approx err', 
@@ -121,11 +123,12 @@ def getECGRes(EPS, BATCH_SIZE):
                                  'avg approx time', 'avg priv time', 
                                  'avg smooth time', 'avg total runtime'])
     stats_total = np.zeros(9); total_rec = 0
-    for i in range(22):
+    # for i in range(22):
+    for i in range(1):
         folder = "{:05d}/".format(i*1000)
         num_rec = 0; stats_avg = np.zeros(9)
         for j in range(1000):
-            file = "{:05d}_lr.txt".format(i*1000+j)
+            file = f"{i*1000+j:05d}_lr_{METHOD}.txt"
             if not os.path.exists(dir+folder+file): continue
             stats = getStats(dir+folder+file, False, False, True)
             stats_avg += np.array([stats[0]]+stats[3:])
@@ -160,17 +163,18 @@ def getECGRes(EPS, BATCH_SIZE):
     print(f'''{f"avg smooth time = {stats_total[8]/total_rec*1000:>9.5f} ms.":>44}''')
     print(f'''{f"avg total runtime = {(stats_total[2]+stats_total[5]+stats_total[8])/total_rec*1000:>9.5f} ms.":>120}''')
 
-def getECGBLRes(EPS, SAMPLE_RATE, WINDOW_SCALE):
+def getECGBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
     dir = f"results/ECG/ECG_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}/"
     df = pd.DataFrame(columns = ['folder', '# records', 'eps (per record)', 
                                  'avg func L2', 'avg priv err', 'avg priv time', 
                                  'avg smooth err', 'avg smooth time', 'avg total runtime'])
     stats_total = np.zeros(5); total_rec = 0
-    for i in range(22):
+    # for i in range(22):
+    for i in range(1):
         folder = "{:05d}/".format(i*1000)
         num_rec = 0; stats_avg = np.zeros(5)
         for j in range(1000):
-            file = "{:05d}_lr.txt".format(i*1000+j)
+            file = f"{i*1000+j:05d}_lr_{METHOD}.txt"
             if not os.path.exists(dir+folder+file): continue
             stats = getStats(dir+folder+file, True)
             stats_avg += np.array([stats[0]]+stats[3:])
@@ -198,16 +202,16 @@ def getECGBLRes(EPS, SAMPLE_RATE, WINDOW_SCALE):
 
 if sys.argv[1] in ["t", "T", "taxi", "Taxi"]:
     for EPS in [0.001, 0.003, 0.01, 0.03, 0.1]:
-        getTaxiRes(EPS)
+        getTaxiRes(sys.argv[2], EPS)
         for SAMPLE_RATE in [0.1, 0.2]:
             for WINDOW_SCALE in [0.05, 0.1]:
-                getTaxiBLRes(EPS, SAMPLE_RATE, WINDOW_SCALE)
+                getTaxiBLRes(sys.argv[2], EPS, SAMPLE_RATE, WINDOW_SCALE)
         print("="*120+"\n")
 
 elif sys.argv[1] in ["e", "E", "ecg", "ECG"]:
     for EPS in [0.25, 0.5, 1.0, 2.0, 4.0]:
-        getECGRes(EPS, 20)
+        getECGRes(sys.argv[2], EPS, 20)
         for SAMPLE_RATE in [0.1, 0.2]:
             for WINDOW_SCALE in [0.05, 0.1]:
-                getECGBLRes(EPS, SAMPLE_RATE, WINDOW_SCALE)
+                getECGBLRes(sys.argv[2], EPS, SAMPLE_RATE, WINDOW_SCALE)
         print("="*120+"\n")
