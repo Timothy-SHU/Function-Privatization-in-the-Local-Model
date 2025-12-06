@@ -1,0 +1,224 @@
+========================================================================================================================
+Taxi Trajectory Dataset (units: t -- second, x/y -- meter)
+Privacy budget: 0.001 per curve; 304 curves in total.
+Below are average statistics per curve (12h time range).
+------------------------------------------------------------------------------------------------------------------------
+         avg ||f|| =  3831709.53839.
+avg ||f-f_approx|| =   407190.22532;                                                      avg approx time = 41.29085 ms.
+  avg ||f-f_priv|| =   422237.43980;       avg ||f_priv-f_approx|| = 105463.94586;          avg priv time =  0.04356 ms.
+avg ||f-f_smooth|| =   553963.73329;     avg ||f_smooth-f_approx|| = 371159.08159;        avg smooth time =  0.74118 ms.
+                                                                                        avg total runtime = 42.07559 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| = 26227546.14541;                                                 avg baseline runtime =  1.73847 ms.
+ avg ||f-f_bl_sm|| = 17673348.25858;                                             avg baseline smooth time =  0.32209 ms.
+                                                                               avg baseline total runtime =  2.06056 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| = 26150285.93167;                                                 avg baseline runtime =  1.75085 ms.
+ avg ||f-f_bl_sm|| = 12759242.55001;                                             avg baseline smooth time =  0.31361 ms.
+                                                                               avg baseline total runtime =  2.06447 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| = 52681611.57273;                                                 avg baseline runtime =  2.52570 ms.
+ avg ||f-f_bl_sm|| = 25536677.68770;                                             avg baseline smooth time =  0.60164 ms.
+                                                                               avg baseline total runtime =  3.12734 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| = 52569339.14492;                                                 avg baseline runtime =  2.50656 ms.
+ avg ||f-f_bl_sm|| = 18474099.46045;                                             avg baseline smooth time =  0.59844 ms.
+                                                                               avg baseline total runtime =  3.10500 ms.
+========================================================================================================================
+
+========================================================================================================================
+Taxi Trajectory Dataset (units: t -- second, x/y -- meter)
+Privacy budget: 0.002 per curve; 304 curves in total.
+Below are average statistics per curve (12h time range).
+------------------------------------------------------------------------------------------------------------------------
+         avg ||f|| =  3831709.53839.
+avg ||f-f_approx|| =   275799.83765;                                                      avg approx time = 44.73956 ms.
+  avg ||f-f_priv|| =   289601.94495;       avg ||f_priv-f_approx|| =  81910.83039;          avg priv time =  0.04480 ms.
+avg ||f-f_smooth|| =   401090.53077;     avg ||f_smooth-f_approx|| = 287836.55983;        avg smooth time =  0.88636 ms.
+                                                                                        avg total runtime = 45.67072 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| = 13097851.10990;                                                 avg baseline runtime =  1.63236 ms.
+ avg ||f-f_bl_sm|| =  8816381.03944;                                             avg baseline smooth time =  0.30830 ms.
+                                                                               avg baseline total runtime =  1.94066 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| = 13124768.18126;                                                 avg baseline runtime =  1.62578 ms.
+ avg ||f-f_bl_sm|| =  6457500.90658;                                             avg baseline smooth time =  0.31455 ms.
+                                                                               avg baseline total runtime =  1.94033 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| = 26355573.46285;                                                 avg baseline runtime =  2.44774 ms.
+ avg ||f-f_bl_sm|| = 12823860.75475;                                             avg baseline smooth time =  0.58937 ms.
+                                                                               avg baseline total runtime =  3.03711 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| = 26317574.46702;                                                 avg baseline runtime =  2.52378 ms.
+ avg ||f-f_bl_sm|| =  9273402.55913;                                             avg baseline smooth time =  0.59824 ms.
+                                                                               avg baseline total runtime =  3.12202 ms.
+========================================================================================================================
+
+========================================================================================================================
+Taxi Trajectory Dataset (units: t -- second, x/y -- meter)
+Privacy budget: 0.005 per curve; 304 curves in total.
+Below are average statistics per curve (12h time range).
+------------------------------------------------------------------------------------------------------------------------
+         avg ||f|| =  3831709.53839.
+avg ||f-f_approx|| =   226003.51326;                                                      avg approx time = 47.57009 ms.
+  avg ||f-f_priv|| =   229998.23958;       avg ||f_priv-f_approx|| =  41027.01955;          avg priv time =  0.04582 ms.
+avg ||f-f_smooth|| =   343325.59903;     avg ||f_smooth-f_approx|| = 257185.97371;        avg smooth time =  1.00516 ms.
+                                                                                        avg total runtime = 48.62108 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  5253037.79875;                                                 avg baseline runtime =  1.62393 ms.
+ avg ||f-f_bl_sm|| =  3559742.65767;                                             avg baseline smooth time =  0.30824 ms.
+                                                                               avg baseline total runtime =  1.93216 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  5247198.38602;                                                 avg baseline runtime =  1.68499 ms.
+ avg ||f-f_bl_sm|| =  2684197.38242;                                             avg baseline smooth time =  0.32125 ms.
+                                                                               avg baseline total runtime =  2.00624 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| = 10525409.28915;                                                 avg baseline runtime =  2.51372 ms.
+ avg ||f-f_bl_sm|| =  5118138.25167;                                             avg baseline smooth time =  0.60573 ms.
+                                                                               avg baseline total runtime =  3.11945 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| = 10493457.27643;                                                 avg baseline runtime =  2.44989 ms.
+ avg ||f-f_bl_sm|| =  3774775.84487;                                             avg baseline smooth time =  0.58605 ms.
+                                                                               avg baseline total runtime =  3.03594 ms.
+========================================================================================================================
+
+========================================================================================================================
+Taxi Trajectory Dataset (units: t -- second, x/y -- meter)
+Privacy budget: 0.01 per curve; 304 curves in total.
+Below are average statistics per curve (12h time range).
+------------------------------------------------------------------------------------------------------------------------
+         avg ||f|| =  3831709.53839.
+avg ||f-f_approx|| =   144593.71997;                                                      avg approx time = 52.39080 ms.
+  avg ||f-f_priv|| =   149051.50124;       avg ||f_priv-f_approx|| =  32493.11470;          avg priv time =  0.04609 ms.
+avg ||f-f_smooth|| =   221343.08705;     avg ||f_smooth-f_approx|| = 166784.30646;        avg smooth time =  1.40694 ms.
+                                                                                        avg total runtime = 53.84383 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  2634300.72469;                                                 avg baseline runtime =  1.65576 ms.
+ avg ||f-f_bl_sm|| =  1830438.16155;                                             avg baseline smooth time =  0.31353 ms.
+                                                                               avg baseline total runtime =  1.96929 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  2642244.53750;                                                 avg baseline runtime =  1.62860 ms.
+ avg ||f-f_bl_sm|| =  1498433.24806;                                             avg baseline smooth time =  0.31370 ms.
+                                                                               avg baseline total runtime =  1.94230 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  5261186.74415;                                                 avg baseline runtime =  2.48253 ms.
+ avg ||f-f_bl_sm|| =  2588756.50424;                                             avg baseline smooth time =  0.59348 ms.
+                                                                               avg baseline total runtime =  3.07601 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  5255216.10796;                                                 avg baseline runtime =  2.49046 ms.
+ avg ||f-f_bl_sm|| =  2009967.59673;                                             avg baseline smooth time =  0.60102 ms.
+                                                                               avg baseline total runtime =  3.09148 ms.
+========================================================================================================================
+
+========================================================================================================================
+Taxi Trajectory Dataset (units: t -- second, x/y -- meter)
+Privacy budget: 0.02 per curve; 304 curves in total.
+Below are average statistics per curve (12h time range).
+------------------------------------------------------------------------------------------------------------------------
+         avg ||f|| =  3831709.53839.
+avg ||f-f_approx|| =   111150.74614;                                                      avg approx time = 55.80013 ms.
+  avg ||f-f_priv|| =   113068.10134;       avg ||f_priv-f_approx|| =  20252.88379;          avg priv time =  0.04551 ms.
+avg ||f-f_smooth|| =   173064.25937;     avg ||f_smooth-f_approx|| = 132020.03451;        avg smooth time =  1.67223 ms.
+                                                                                        avg total runtime = 57.51787 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  1346138.78621;                                                 avg baseline runtime =  1.62462 ms.
+ avg ||f-f_bl_sm|| =  1013151.67040;                                             avg baseline smooth time =  0.31110 ms.
+                                                                               avg baseline total runtime =  1.93572 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  1347303.07943;                                                 avg baseline runtime =  1.66434 ms.
+ avg ||f-f_bl_sm|| =   997271.12329;                                             avg baseline smooth time =  0.32031 ms.
+                                                                               avg baseline total runtime =  1.98465 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  2633999.04062;                                                 avg baseline runtime =  2.47633 ms.
+ avg ||f-f_bl_sm|| =  1373394.30406;                                             avg baseline smooth time =  0.58615 ms.
+                                                                               avg baseline total runtime =  3.06247 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  2643526.13591;                                                 avg baseline runtime =  2.52021 ms.
+ avg ||f-f_bl_sm|| =  1212194.10202;                                             avg baseline smooth time =  0.60864 ms.
+                                                                               avg baseline total runtime =  3.12886 ms.
+========================================================================================================================
+
+========================================================================================================================
+Taxi Trajectory Dataset (units: t -- second, x/y -- meter)
+Privacy budget: 0.05 per curve; 304 curves in total.
+Below are average statistics per curve (12h time range).
+------------------------------------------------------------------------------------------------------------------------
+         avg ||f|| =  3831709.53839.
+avg ||f-f_approx|| =    83406.06783;                                                      avg approx time = 60.19438 ms.
+  avg ||f-f_priv|| =    84438.71624;       avg ||f_priv-f_approx|| =  11475.08522;          avg priv time =  0.04676 ms.
+avg ||f-f_smooth|| =   132095.93529;     avg ||f_smooth-f_approx|| = 101221.68757;        avg smooth time =  2.41123 ms.
+                                                                                        avg total runtime = 62.65238 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =   613756.29635;                                                 avg baseline runtime =  1.64627 ms.
+ avg ||f-f_bl_sm|| =   603649.88592;                                             avg baseline smooth time =  0.31655 ms.
+                                                                               avg baseline total runtime =  1.96282 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =   615787.52035;                                                 avg baseline runtime =  1.63229 ms.
+ avg ||f-f_bl_sm|| =   791947.48499;                                             avg baseline smooth time =  0.31564 ms.
+                                                                               avg baseline total runtime =  1.94793 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  1066058.49977;                                                 avg baseline runtime =  2.55193 ms.
+ avg ||f-f_bl_sm|| =   712396.98776;                                             avg baseline smooth time =  0.59244 ms.
+                                                                               avg baseline total runtime =  3.14437 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  1066010.65265;                                                 avg baseline runtime =  2.48202 ms.
+ avg ||f-f_bl_sm|| =   842990.70113;                                             avg baseline smooth time =  0.59006 ms.
+                                                                               avg baseline total runtime =  3.07209 ms.
+========================================================================================================================
+
+========================================================================================================================
+Taxi Trajectory Dataset (units: t -- second, x/y -- meter)
+Privacy budget: 0.1 per curve; 304 curves in total.
+Below are average statistics per curve (12h time range).
+------------------------------------------------------------------------------------------------------------------------
+         avg ||f|| =  3831709.53839.
+avg ||f-f_approx|| =    55847.61552;                                                      avg approx time = 68.67305 ms.
+  avg ||f-f_priv|| =    56464.21334;       avg ||f_priv-f_approx|| =   8107.09668;          avg priv time =  0.05049 ms.
+avg ||f-f_smooth|| =    89048.89474;     avg ||f_smooth-f_approx|| =  67937.46491;        avg smooth time =  3.58075 ms.
+                                                                                        avg total runtime = 72.30430 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =   405358.25651;                                                 avg baseline runtime =  1.63468 ms.
+ avg ||f-f_bl_sm|| =   512437.03074;                                             avg baseline smooth time =  0.31238 ms.
+                                                                               avg baseline total runtime =  1.94706 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =   404659.62082;                                                 avg baseline runtime =  1.63833 ms.
+ avg ||f-f_bl_sm|| =   755076.79914;                                             avg baseline smooth time =  0.31103 ms.
+                                                                               avg baseline total runtime =  1.94936 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =   553371.56098;                                                 avg baseline runtime =  2.47541 ms.
+ avg ||f-f_bl_sm|| =   550741.11367;                                             avg baseline smooth time =  0.58734 ms.
+                                                                               avg baseline total runtime =  3.06275 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =   550690.72523;                                                 avg baseline runtime =  2.50140 ms.
+ avg ||f-f_bl_sm|| =   772291.39469;                                             avg baseline smooth time =  0.58807 ms.
+                                                                               avg baseline total runtime =  3.08947 ms.
+========================================================================================================================
+

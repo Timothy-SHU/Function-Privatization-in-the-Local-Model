@@ -3,6 +3,7 @@ from PrivPwcApprox import *
 from tqdm import tqdm
 
 EPS = 1.0
+METHOD = 'Laplace'
 BATCH_SIZE = 20
 TIME_SCALE = 80
 VAL_SCALE = 1000
@@ -10,6 +11,19 @@ repeat = 10
 unbounded = None
 parallel = None
 interactive = True
+
+def genNoise(method, scale, dim = 1):
+    if method == 'Laplace':
+        if dim == 1:
+            noise = laplace.rvs(scale = scale)
+        else:
+            noise = np.random.randn(dim)
+            noise = noise/np.linalg.norm(noise)
+            noise *= gamma.rvs(a = dim, scale = scale)
+    elif method == 'Gaussian':
+        if dim == 1: noise = norm.rvs(scale = scale)
+        else: noise = scale*np.random.randn(dim)
+    return noise
 
 if len(sys.argv) > 1:
     METHOD = str(sys.argv[1])
@@ -23,8 +37,8 @@ if len(sys.argv) > 1:
 records = []
 timer = time.time()
 # for i in range(1, 21838):
-# for i in range(1, 101): 
-for i in range (1, 21):  # sample: run only the first 20 records
+for i in range(1, 1000): 
+# for i in range (1, 21):  # sample: run only the first 20 records
     folder = "{:05d}".format(i//1000*1000)
     file = "{:05d}_lr".format(i)
     path = "ptb-xl/records100/"+folder+"/"+file
@@ -39,7 +53,9 @@ print(f"Each {records[0][2].p_signal.shape[0]} datapoints, sampled at frequency 
 print("="*80)
 
 if len(sys.argv) == 1:
-    str = input("Privacy budget per record (default 1.0):\t")
+    str = input("Apply Laplace noise? [ Y(GP) / n(CGP) ]:\t")
+    if str in ["N", "n"]: METHOD = 'Gaussian'
+    str = input("Privacy budget (in eps) per record [default 1.0]:\t")
     if str != "": EPS = float(str)
     str = input("Batch size (default 20, input -1 for unbounded basis):\t")
     if str != "": BATCH_SIZE = int(str)
@@ -55,6 +71,8 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
     t = np.linspace(1/record.fs*TIME_SCALE, T, n)
     val = record.p_signal[:, 1]*VAL_SCALE
     func = time_series_func(t, val)
+    eps = EPS
+    if METHOD == 'Gaussian': eps = eps*eps/2
 
     # wfdb.plot_wfdb(record = record, title = "ECG Recording")
     # plt.show()
@@ -78,18 +96,24 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
     err_ls = solver.eval('Approx')
 
     if interactive:
-        solver.privatize(EPS, METHOD)
+        solver.privatize(eps, METHOD)
         approx = solver.createApprox()
         priv = solver.createPriv()
         err_priv = solver.eval('Priv')
         priv_loss = solver.evalPrivLoss()
         print(f"Privatized in {time.time()-iter_timer:.2f} sec (incl preproc).")
-        plt.figure(figsize = (20, 16))
-        plt.subplot(2, 1, 1)
-        plt.plot(t/TIME_SCALE, val/VAL_SCALE, color = 'black')
+
         dense_t = np.linspace(t[0], T, 10*n+1)
-        plt.plot(dense_t/TIME_SCALE, approx(dense_t)/VAL_SCALE, color = 'red')
-        plt.plot(dense_t/TIME_SCALE, priv(dense_t)/VAL_SCALE, color = 'blue')
+        plt.subplot(4, 1, 1)
+        plt.plot(t/TIME_SCALE, val, color = 'black', label = "function")
+        plt.plot(dense_t/TIME_SCALE, approx(dense_t), color = 'tab:blue', 
+                 alpha = 0.9, label = "approximation")
+        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)"); plt.legend()
+        plt.subplot(4, 1, 2)
+        plt.plot(t/TIME_SCALE, val, color = 'black', label = "function")
+        plt.plot(dense_t/TIME_SCALE, priv(dense_t), color = 'tab:orange', 
+                 alpha = 0.9, label = "privatization")
+        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)"); plt.legend()
 
         smooth_timer = time.time()
         solver.smooth()
@@ -97,10 +121,6 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         err_smooth = solver.eval('Priv')
         smooth_loss = solver.evalPrivLoss()
         print(f"Smoothed in {time.time()-smooth_timer:.2f} sec.")
-        plt.subplot(2, 1, 2)
-        plt.plot(t/TIME_SCALE, val/VAL_SCALE, color = 'black')
-        plt.plot(dense_t/TIME_SCALE, approx(dense_t)/VAL_SCALE, color = 'red')
-        plt.plot(dense_t/TIME_SCALE, smooth(dense_t)/VAL_SCALE, color = 'blue')
         print(f"Total time elapsed: {time.time()-iter_timer:.2f} sec.")
         print(f"||f-f_approx|| = {err_ls:.5f};")
         print(f"||f_approx-f_priv|| = {priv_loss:.5f};", end = " ")
@@ -108,8 +128,35 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         print(f"||f_approx-f_smoothed|| = {smooth_loss:.5f};", end = " ")
         print(f"||f-f_smoothed|| = {err_smooth:.5f}.")
         print("="*80)
+
+        plt.subplot(4, 1, 3)
+        plt.plot(t/TIME_SCALE, val, color = 'black', label = "function")
+        plt.plot(dense_t/TIME_SCALE, smooth(dense_t), color = 'tab:purple', 
+                 alpha = 0.9, label = "privatization (continuous)")
+        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)"); plt.legend()
+
+        SAMPLE = int(len(t)*0.1)
+        WINDOW = max(1, int(SAMPLE*0.05/2))
+        sample = np.linspace(0, n-1, SAMPLE, dtype = int)
+        sample = [i in sample for i in range(len(t))]
+        val_priv = val[sample]
+        for i in range(SAMPLE):
+            if METHOD == 'Laplace':
+                val_priv[i] += genNoise(METHOD, SAMPLE/eps)
+            elif METHOD == 'Gaussian':
+                val_priv[i] += genNoise(METHOD, np.sqrt(SAMPLE/(2*eps)))
+        val_smooth = np.zeros(SAMPLE)
+        for l in range(SAMPLE):
+            val_smooth[l] = np.mean(val_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
+        plt.subplot(4, 1, 4)
+        plt.plot(t/TIME_SCALE, val, color = 'black', label = "function")
+        plt.plot(t[sample]/TIME_SCALE, val_priv, color = 'tab:green', 
+                 alpha = 0.9, label = "baseline")
+        plt.plot(t[sample]/TIME_SCALE, val_smooth, color = 'tab:brown', 
+                 alpha = 0.9, label = "baseline (smoothed)")
+        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)"); plt.legend()
         plt.show()
-        break
+        exit(0)
     else:
         dir = f"results/ECG/ECG_{EPS}_{BATCH_SIZE*TIME_SCALE//record.fs}x{n//BATCH_SIZE}/{folder}/"
         os.makedirs(dir, exist_ok = True)
@@ -119,7 +166,7 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         res_file.write(f"{err_ls} {approx_time}\n\n")
         for i in range(repeat):
             priv_timer = time.time()
-            solver.privatize(EPS, METHOD)
+            solver.privatize(eps, METHOD)
             priv_time = time.time()-priv_timer
             err_priv = solver.eval('Priv')
             priv_loss = solver.evalPrivLoss()

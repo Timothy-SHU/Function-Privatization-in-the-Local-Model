@@ -52,6 +52,7 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
             t = df['t'][i][j]
             t = np.array([(cur-t[0]).total_seconds() for cur in t])
             eps = EPS/UNIT_TIME_SCALE*(t[-1]-t[0])
+            if METHOD == 'Gaussian': eps = eps*eps/2
             x = np.array(df['x'][i][j])
             y = np.array(df['y'][i][j])
             min_x = np.min(x); x -= min_x
@@ -76,9 +77,9 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
                 x_priv = x[sample]; y_priv = y[sample]
                 for l in range(SAMPLE):
                     if METHOD == 'Laplace':
-                        noise = genNoise(METHOD, SAMPLE/EPS, 2)
+                        noise = genNoise(METHOD, SAMPLE/eps, 2)
                     elif METHOD == 'Gaussian':
-                        noise = genNoise(METHOD, np.sqrt(SAMPLE/(2*EPS)), 2)
+                        noise = genNoise(METHOD, np.sqrt(SAMPLE/(2*eps)), 2)
                     x_priv[l] += noise[0]
                     y_priv[l] += noise[1]
                 x_priv_pts = np.interp(t, t[sample], x_priv)
@@ -104,14 +105,14 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
                 err_smooth = np.sqrt(err_smooth)
                 res_file.write(f"{err_smooth} {smooth_time}\n\n")
             res_file.close(); pbar.update(1)
-        if i == 19: break   # sample: run only the first twenty datasets
+        # if i == 19: break   # sample: run only the first twenty datasets
 
 elif bench in ['e', 'E', 'ecg', 'ECG']:
     records = []
     min_val = 0; max_val = 0
     # for i in range(1, 21838):
-    # for i in range(101):
-    for i in range (1, 21):  # sample: run only the first 20 records
+    for i in range(1000):
+    # for i in range (1, 21):  # sample: run only the first 20 records
         folder = "{:05d}".format(i//1000*1000)
         file = "{:05d}_lr".format(i)
         path = "ptb-xl/records100/"+folder+"/"+file
@@ -129,6 +130,8 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
         T = n//record.fs*TIME_SCALE
         t = np.linspace(1/record.fs*TIME_SCALE, T, n)
         val = record.p_signal[:, 1]*VAL_SCALE
+        eps = EPS
+        if METHOD == 'Gaussian': eps = eps*eps/2
 
         SAMPLE = int(len(t)*SAMPLE_RATE)
         WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
@@ -146,9 +149,9 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
             val_priv = val[sample]
             for i in range(SAMPLE):
                 if METHOD == 'Laplace':
-                    val_priv[i] += genNoise(METHOD, SAMPLE/EPS)
+                    val_priv[i] += genNoise(METHOD, SAMPLE/eps)
                 elif METHOD == 'Gaussian':
-                    val_priv[i] += genNoise(METHOD, np.sqrt(SAMPLE/(2*EPS)))
+                    val_priv[i] += genNoise(METHOD, np.sqrt(SAMPLE/(2*eps)))
             val_priv_pts = np.interp(t, t[sample], val_priv)
             priv_time = time.time()-priv_timer
 

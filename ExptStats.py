@@ -1,12 +1,14 @@
 import os, sys
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 N = 1000
 FREQUENCY = 100
 TIME_SCALE = 80
 UNIT_TIME_SCALE = 43200
 repeat = 10
+genCSVs = False
 
 def getStats(filename, isBaseline = False, adaptive = False, smoothed = True):
     file = open(filename, 'r')
@@ -49,7 +51,8 @@ def getTaxiRes(METHOD, EPS):
     df = pd.DataFrame(columns = ['name', 'total length of time', 'total eps', 'func L2', 
                                  'approx err', 'priv err', 'priv loss', 'smooth err', 'smooth loss', 
                                  'approx time', 'priv time', 'smooth time', 'total runtime'])
-    for idx, subdir in enumerate(sorted(os.scandir(dir), key = lambda e: e.name)):
+    idx = 0
+    for subdir in sorted(os.scandir(dir), key = lambda e: e.name):
         if not subdir.is_dir(): continue
         folder = os.path.basename(subdir.path)+"/"
         funcL2 = None; stats_sum = np.zeros(10)
@@ -64,8 +67,10 @@ def getTaxiRes(METHOD, EPS):
                        'smooth err': stats_sum[7], 'smooth loss': stats_sum[8], 
                        'approx time': stats_sum[3], 'priv time': stats_sum[6], 'smooth time': stats_sum[9], 
                        'total runtime': stats_sum[3]+stats_sum[6]+stats_sum[9]}
-    os.makedirs("results/tabs/", exist_ok = True)
-    df.to_csv(f"results/tabs/TaxiTrajectory_{EPS}.csv")
+        idx += 1
+    if genCSVs:
+        os.makedirs("results/tabs/", exist_ok = True)
+        df.to_csv(f"results/tabs/TaxiTrajectory_{METHOD}_{EPS}.csv")
     total_units = df['total length of time'].sum()/UNIT_TIME_SCALE
     print("="*120)
     print("Taxi Trajectory Dataset (units: t -- second, x/y -- meter)")
@@ -83,12 +88,13 @@ def getTaxiRes(METHOD, EPS):
     print(f'''{f"avg ||f_smooth-f_approx|| = {df['smooth loss'].sum()/total_units:>12.5f};":>46}''', end = "")
     print(f'''{f"avg smooth time = {df['smooth time'].sum()/total_units*1000:>8.5f} ms.":>38}''')
     print(f'''{f"avg total runtime = {df['total runtime'].sum()/total_units*1000:>8.5f} ms.":>120}''')
+    return df['func L2'].sum()/total_units, df['approx err'].sum()/total_units, df['priv err'].sum()/total_units, df['smooth err'].sum()/total_units
 
 def getTaxiBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
     dir = f"results/TaxiTrajectory/taxi_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}/"
     df = pd.DataFrame(columns = ['name', 'func L2', 'priv err', 'priv time', 'smooth err', 'smooth time', 'total runtime'])
-    total_units = 0
-    for idx, subdir in enumerate(sorted(os.scandir(dir), key = lambda e: e.name)):
+    total_units = 0; idx = 0
+    for subdir in sorted(os.scandir(dir), key = lambda e: e.name):
         if not subdir.is_dir(): continue
         folder = os.path.basename(subdir.path)+"/"
         funcL2 = None; stats_sum = np.zeros(4)
@@ -102,8 +108,10 @@ def getTaxiBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
                        'priv err': stats_sum[0], 'priv time': stats_sum[1], 
                        'smooth err': stats_sum[2], 'smooth time': stats_sum[3], 
                        'total runtime': stats_sum[1]+stats_sum[3]}
-    os.makedirs("results/tabs/", exist_ok = True)
-    df.to_csv(f"results/tabs/TaxiTrajectory_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}.csv")
+        idx += 1
+    if genCSVs:
+        os.makedirs("results/tabs/", exist_ok = True)
+        df.to_csv(f"results/tabs/TaxiTrajectory_bl_{METHOD}_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}.csv")
     print("-"*120)
     print("Baseline:", end = " ")
     print(f"sample size = {SAMPLE_RATE} x num datapoints;", end = " ")
@@ -113,6 +121,7 @@ def getTaxiBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
     print(f'''{f"avg ||f-f_bl_sm|| = {df['smooth err'].sum()/total_units:>14.5f};":>36}''', end = "")
     print(f'''{f"avg baseline smooth time = {df['smooth time'].sum()/total_units*1000:>8.5f} ms.":>84}''')
     print(f'''{f"avg baseline total runtime = {df['total runtime'].sum()/total_units*1000:>8.5f} ms.":>120}''')
+    return df['priv err'].sum()/total_units, df['smooth err'].sum()/total_units
 
 def getECGRes(METHOD, EPS, BATCH_SIZE):
     dir = f"results/ECG/ECG_{EPS}_{BATCH_SIZE*TIME_SCALE//FREQUENCY}x{N//BATCH_SIZE}/"
@@ -143,8 +152,9 @@ def getECGRes(METHOD, EPS, BATCH_SIZE):
                      'avg approx time': stats_avg[2], 'avg priv time': stats_avg[5], 
                      'avg smooth_time': stats_avg[8], 
                      'avg total runtime': stats_avg[2]+stats_avg[5]+stats_avg[8]}
-    os.makedirs("results/tabs/", exist_ok = True)
-    df.to_csv(f"results/tabs/ECG_{EPS}_{BATCH_SIZE*TIME_SCALE//FREQUENCY}x{N//BATCH_SIZE}.csv")
+    if genCSVs:
+        os.makedirs("results/tabs/", exist_ok = True)
+        df.to_csv(f"results/tabs/ECG_{METHOD}_{EPS}_{BATCH_SIZE*TIME_SCALE//FREQUENCY}x{N//BATCH_SIZE}.csv")
     print("="*120)
     print(f"ECG Dataset (units: t -- 1/{TIME_SCALE} second, amp -- microvolt \u03BCv)")
     print(f"{total_rec} records in total: {N} points per record, sampled at frequency {FREQUENCY} Hz.")
@@ -162,6 +172,7 @@ def getECGRes(METHOD, EPS, BATCH_SIZE):
     print(f'''{f"avg ||f_smooth-f_approx|| = {stats_total[7]/total_rec:>11.5f};":>43}''', end = "")
     print(f'''{f"avg smooth time = {stats_total[8]/total_rec*1000:>9.5f} ms.":>44}''')
     print(f'''{f"avg total runtime = {(stats_total[2]+stats_total[5]+stats_total[8])/total_rec*1000:>9.5f} ms.":>120}''')
+    return stats_total[0]/total_rec, stats_total[1]/total_rec, stats_total[3]/total_rec, stats_total[6]/total_rec
 
 def getECGBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
     dir = f"results/ECG/ECG_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}/"
@@ -188,8 +199,9 @@ def getECGBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
                      'avg priv err': stats_avg[1], 'avg priv time': stats_avg[2], 
                      'avg smooth err': stats_avg[3], 'avg smooth time': stats_avg[4], 
                      'avg total runtime': stats_avg[2]+stats_avg[4]}
-    os.makedirs("results/tabs/", exist_ok = True)
-    df.to_csv(f"results/tabs/ECG_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}.csv")
+    if genCSVs:
+        os.makedirs("results/tabs/", exist_ok = True)
+        df.to_csv(f"results/tabs/ECG_bl_{METHOD}_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}.csv")
     print("-"*120)
     print("Baseline:", end = " ")
     print(f"sample size = {SAMPLE_RATE} x num datapoints;", end = " ")
@@ -199,19 +211,63 @@ def getECGBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
     print(f'''{f"avg ||f-f_bl_sm|| = {stats_total[3].sum()/total_rec:>11.5f};":>33}''', end = "")
     print(f'''{f"avg baseline smooth time = {stats_total[4].sum()/total_rec*1000:>9.5f} ms.":>87}''')
     print(f'''{f"avg baseline total runtime = {(stats_total[2]+stats_total[4])/total_rec*1000:>9.5f} ms.":>120}''')
+    return stats_total[1]/total_rec, stats_total[3]/total_rec
 
+SAMPLE_RATE_LIST = [0.1, 0.2]
+WINDOW_SCALE_LIST = [0.05, 0.1]
+BL_COLOR_LIST = [['tab:green', 'tab:brown'], ['tab:olive', 'tab:pink']]
+BL_MARKER_LIST = ['x', 'd', '+']
+
+names = []; results = []; colors = []; markers = []
+names.append("Function L2-norm"); results.append([])
+colors.append('black'); markers.append(None)
+names.append("LS Approximation Error"); results.append([])
+colors.append('tab:blue'); markers.append('^')
+names.append("Privatization Error"); results.append([])
+colors.append('tab:orange'); markers.append('o')
+names.append("Continuous Privatization Error"); results.append([])
+colors.append('tab:purple'); markers.append('s')
+for i, SAMPLE_RATE in enumerate(SAMPLE_RATE_LIST):
+    names.append(f"Baseline (Sample Rate {SAMPLE_RATE})"); results.append([])
+    colors.append(BL_COLOR_LIST[i][0]); markers.append(BL_MARKER_LIST[-1])
+    for j, WINDOW_SCALE in enumerate(WINDOW_SCALE_LIST):
+        names.append(f"Baseline (Sample Rate {SAMPLE_RATE}, Window Scale {WINDOW_SCALE})")
+        results.append([]); colors.append(BL_COLOR_LIST[i][1]); markers.append(BL_MARKER_LIST[j])
+
+isTaxi = True
 if sys.argv[1] in ["t", "T", "taxi", "Taxi"]:
-    for EPS in [0.001, 0.003, 0.01, 0.03, 0.1]:
-        getTaxiRes(sys.argv[2], EPS)
-        for SAMPLE_RATE in [0.1, 0.2]:
-            for WINDOW_SCALE in [0.05, 0.1]:
-                getTaxiBLRes(sys.argv[2], EPS, SAMPLE_RATE, WINDOW_SCALE)
-        print("="*120+"\n")
-
+    EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
+    RHO_LIST = [0.0000005, 0.000002, 0.0000125, 0.00005, 0.0002, 0.00125, 0.005]
 elif sys.argv[1] in ["e", "E", "ecg", "ECG"]:
-    for EPS in [0.25, 0.5, 1.0, 2.0, 4.0]:
-        getECGRes(sys.argv[2], EPS, 20)
-        for SAMPLE_RATE in [0.1, 0.2]:
-            for WINDOW_SCALE in [0.05, 0.1]:
-                getECGBLRes(sys.argv[2], EPS, SAMPLE_RATE, WINDOW_SCALE)
-        print("="*120+"\n")
+    EPS_LIST = [0.1, 0.2, 0.5, 1.0, 2.0]
+    RHO_LIST = [0.005, 0.02, 0.125, 0.5, 2.0]
+    isTaxi = False
+else: exit(1)
+for EPS in EPS_LIST:
+    if isTaxi: res = getTaxiRes(sys.argv[2], EPS)
+    else: res = getECGRes(sys.argv[2], EPS, 20)
+    for idx in range(4):
+        results[idx].append(res[idx])
+    idx = 4
+    for SAMPLE_RATE in SAMPLE_RATE_LIST:
+        for WINDOW_SCALE in WINDOW_SCALE_LIST:
+            if isTaxi: res = getTaxiBLRes(sys.argv[2], EPS, SAMPLE_RATE, WINDOW_SCALE)
+            else: res = getECGBLRes(sys.argv[2], EPS, SAMPLE_RATE, WINDOW_SCALE)
+            if WINDOW_SCALE == WINDOW_SCALE_LIST[0]:
+                results[idx].append(res[0]); idx += 1
+            results[idx].append(res[1]); idx += 1
+    print("="*120+"\n")
+
+if len(sys.argv) > 3:
+    budgets = EPS_LIST if sys.argv[2] == 'Laplace' else RHO_LIST
+    for idx in range(len(names)):
+        plt.plot(budgets, results[idx], color = colors[idx], 
+                 alpha = 0.9, marker = markers[idx], label = names[idx])
+    plt.legend()
+    plt.xscale('log')
+    if isTaxi: plt.yscale('log')
+    plt.xticks(budgets, budgets, minor = False)
+    if sys.argv[2] == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
+    elif sys.argv[2] == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
+    plt.ylabel("Error")
+    plt.show()

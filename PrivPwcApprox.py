@@ -3,8 +3,8 @@ import cvxpy as cp
 import matplotlib.pyplot as plt
 from scipy import sparse
 from scipy.special import sici
-from scipy.stats import laplace, gamma
 from scipy.sparse.linalg import spsolve
+from scipy.stats import norm, laplace, gamma
 from scipy.linalg import inv, pinv, sqrtm, block_diag
 from scipy.integrate import quad, quad_vec, IntegrationWarning
 from pathos.multiprocessing import ProcessingPool
