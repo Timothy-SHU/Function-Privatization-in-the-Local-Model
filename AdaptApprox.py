@@ -11,15 +11,16 @@ def reduce_seg(func, interval, basis, degree, k0, k, total_eps, eps, beta,
     solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
     solver.fit(func, time_series, parallel)
     err = solver.eval('Approx')
-    thresh = 2**(k-1)*solver.m*solver.d
+    thresh = (2**(k-1))*solver.d
     if basis == 'Linear-2D': thresh *= 2
     if method == 'Laplace':
         noise = laplace.rvs(scale = 1/eps)
         thresh = (thresh*np.e)/(2*(np.e-1)*total_eps)
+        thresh -= 1/np.sqrt(2*eps) * (np.log(2)*k0-np.log(1/beta))
     elif method == 'Gaussian':
         noise = norm.rvs(scale = 1/np.sqrt(2*eps))
         thresh = (np.sqrt(2)-1)/np.sqrt(2) * np.sqrt(thresh/(2*total_eps))
-    thresh -= 1/np.sqrt(2*eps) * (np.log(2)*k0-np.log(1/beta))
+        thresh -= np.sqrt(2/eps) * (np.log(2)*k0-np.log(1/beta))
     total_eps = total_eps-eps
     logging.info(f"ReduceSeg at interval {interval}:"+
                  f"B = {total_eps:.5f}, eps = {eps:.8f}, err = {err:.5f}, noise = {noise:.5f}, "+
@@ -54,15 +55,9 @@ def adaptive_approx(func, interval, basis = 'Polynomial', degree = 1,
         solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
         solver.fit(func, time_series, parallel)
         v = laplace.rvs(scale = 3/eps0)
-        ## Set factor of "# basis * output dim" to sqrt for both GP and CGP
-        if method == 'Laplace':
-            tau = (2**k_bar)*np.sqrt(solver.m*solver.d)
-        elif method == 'Gaussian': 
-            tau = np.sqrt((2**k_bar)*solver.m*solver.d)
-        if basis == 'Linear-2D': tau *= np.sqrt(2)
-        # tau = (2**k_bar)*solver.m*solver.d
-        # if basis == 'Linear-2D': tau *= 2
-        # if method == 'Gaussian': tau = np.sqrt(tau)
+        tau = (2**k_bar)*solver.d
+        if basis == 'Linear-2D': tau *= 2
+        if method == 'Gaussian': tau = np.sqrt(tau)
         tau = SVT_threshold_scale*tau/eps0
         err = solver.eval('Approx')
         logging.info(f"SVT: k_bar = {k_bar}, tau = {tau}, err = {err:.8f}, w = {w:.5f}, v = {v:.5f}; Terminate? {tau-err+v >= w}.")
