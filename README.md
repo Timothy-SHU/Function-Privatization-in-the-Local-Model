@@ -56,8 +56,53 @@ The second command splits into 50 intervals, where each interval is equipped wit
 
 We added efficient integration for $\texttt{Linear-2D}$ basis and $\texttt{Sinc}$ basis based on purely arithmetic computations, so multiprocessing is not needed for these bases. For other bases, integration uses `scipy.integrate.quad`, and enabling multiprocessing is recommended.
 
-Baseline is implemented in `Baseline.py`. It accepts three arguments: `Taxi` or `ECG` to specify the target dataset, a sample rate, and a window scale. The number of sample datapoints drawn is $(\texttt{sample rate})\times(\texttt{total \# of datapoints})$, and the window size is $(\texttt{window scale})\times(\texttt{\# of samples})$.
+Baseline is implemented in `Baseline.py`. It accepts three arguments: `Taxi` or `ECG` to specify the target dataset, a sample rate, and a window scale. The number of sample datapoints drawn is $(\texttt{sample rate})\times(\texttt{total num of datapoints})$, and the window size is $(\texttt{window scale})\times(\texttt{num of samples})$.
 
 After the experiment, use `ExptStats.py` with argument `Taxi` or `ECG` to generate summary statistics table for the datasets.
 
 The shell script `expt.sh` runs all experiments with our algorithm and baseline, then generate all result statistics. 
+
+## Experiment Setup
+
+### Taxi Trajectory Dataset
+
+**Preprocessing**
+
+- There are 536 trajectories in the dataset, each with the mobility information of a specific cab during a time period of 20 to 40 days.
+- We first split the trajectories to curves by date (1 curve represents 1 cab's data in 1 day), and select the observation window "8:00 ~ 20:00". Any curve that does not fully cover this window is removed.
+- We truncate each curve to this window with interpolation at endpoints: fix endpoints at 8:00 and 20:00, decide the coordinates at the endpoints by interpolating the two adjacent datapoints. Thus each curve starts exactly at 8:00 and ends exactly at 20:00, spaning 12 hours = 43200 seconds.
+- To ensure sample size, after truncating each curve to 8:00 ~ 20:00, we remove all curves with less than 500 datapoints.
+- There are 5102 curves remaining, each with 500 to 850 datapoints.
+
+**Experiment**
+
+- Our algorithm include three phases: (1) adaptive least-squares approximation (with SVT threshold exactly $\tau_j=2^j/(\epsilon/4)$), (2) privatize by adding noises to the coefficients, and (3) smooth (ensure continuity) by solving a QP.
+- The baseline has two parameters, $\texttt{sample rate}$ and $\texttt{window scale}$, and has two phases: (1) add Laplace noises to the sample and directly connect these noised samples to form privatized curve, and (2) take window average of the noised samples, and connect those "smoothed" samples to form a privatized curve.
+- For each choice of $\varepsilon=0.001, 0.003, 0.01, 0.03, 0.1$, run our algorithm ((1)+(2)+(3)) on each curve for 20 times, and record approximation error, privatization error, and smoothed privatization error.
+- For each choice of $\varepsilon=0.001, 0.003, 0.01, 0.03, 0.1$ and all 4 combinations of $\texttt{sample rate}\in\{0.1,0.2\}$ and $\texttt{window scale}=\{0.05,0.1\}$,  run the baseline ((1)+(2)) for 20 times on each curve and record errors.
+
+**Evaluation**
+
+For a specific curve, for each algorithm, remove the 4 records with 2 largest and 2 smallest privatization error (so 20% records removed), then take average of the remaining 16 records. The average errors are considered as the empirical mean utility loss aquired by this algorithm on this curve.
+
+For each algorithm, take average of its average errors aquired on all curves in the dataset, and report the empirical mean utility loss of it on the whole dataset.
+
+### ECG Dataset
+
+**Preprocessing**
+
+- There are 21799 records in the dataset, each represents the ECG record of 10 seconds. The record consists of 12 curves, and we only consider the second curve, ECG lead II, as it is the most representative one (so each record contains only 1 curve).
+- Each of those records contains 1000 datapoints, sampleded at 100 Hz.
+- The time range of each record is 10 seconds, and we multiply the time by 80 (time range becomes 800 units now) to match the QRS interval with the shape of standard sinc function.
+- The amplitude of the records are measured in millivolt (mV), and we converted it to microvolt ($\mu$V).
+
+**Experiment**
+
+- The choices of $\varepsilon$ are $0.25, 0.5, 1.0, 2.0, 4.0$.
+- Our algorithm include three phases: (1) piecewise least-squares approximation with 50 pieces, where each piece is fitted with basis $\{\text{sinc}(t-k)\}_{k=0}^{15}$, (2) privatize by adding noises to the coefficients, and (3) smooth (ensure continuity) by solving a QP.
+- The baseline and its experiment are exactly the same as those above.
+- The experiment on our algorithm is almost identical to that above, except that we only run (1) once and run (2)+(3) for 20 times. This is valid because the least-squares approximation result remains the same with the same set of breakpoints and basis.
+
+**Evaluation**
+
+Identical to that above.
