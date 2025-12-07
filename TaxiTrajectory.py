@@ -149,6 +149,8 @@ for i in range(len(df)):
             plt.plot(x_priv+min_x, y_priv+min_y, color = 'tab:green', label = "baseline")
             plt.plot(x_smooth+min_x, y_smooth+min_y, color = 'tab:brown', label = "baseline (smoothed)")
             plt.legend()
+            plt.subplots_adjust(left = 0.03, right = 0.99, top = 0.975, bottom = 0.05, 
+                                wspace = 0.1, hspace = 0.2) 
             plt.show()
 
             plt.subplot(2, 1, 1)

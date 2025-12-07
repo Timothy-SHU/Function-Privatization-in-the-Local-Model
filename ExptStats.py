@@ -242,7 +242,7 @@ if sys.argv[1] in ["t", "T", "taxi", "Taxi"]:
 elif sys.argv[1] in ["e", "E", "ecg", "ECG"]:
     EPS_LIST = [0.1, 0.2, 0.5, 1.0, 2.0]
     # RHO_LIST = [0.005, 0.02, 0.125, 0.5, 2.0]
-    RHO_LIST = [8e-4, 1.6e-3, 4e-3, 8e-3, 1.6e-2]
+    RHO_LIST = [8e-5, 3.2e-4, 2e-3, 8e-3, 3.2e-2]
     isTaxi = False
 else: exit(1)
 for EPS in EPS_LIST:
