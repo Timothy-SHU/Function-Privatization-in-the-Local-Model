@@ -52,7 +52,8 @@ if bench in ['t', 'T', 'taxi', 'Taxi']:
             t = df['t'][i][j]
             t = np.array([(cur-t[0]).total_seconds() for cur in t])
             eps = EPS/UNIT_TIME_SCALE*(t[-1]-t[0])
-            if METHOD == 'Gaussian': eps = eps*eps/2
+            # if METHOD == 'Gaussian': eps = eps*eps/2
+            if METHOD == 'Gaussian': eps = eps*eps/80
             x = np.array(df['x'][i][j])
             y = np.array(df['y'][i][j])
             min_x = np.min(x); x -= min_x
@@ -111,8 +112,9 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
     records = []
     min_val = 0; max_val = 0
     # for i in range(1, 21838):
-    for i in range(1000):
-    # for i in range (1, 21):  # sample: run only the first 20 records
+    # for i in range(1, 1000):  # run the first folder
+    for i in range (513):   # run the first 500 records
+    # for i in range (1, 21):   # sample: run only the first 20 records
         folder = "{:05d}".format(i//1000*1000)
         file = "{:05d}_lr".format(i)
         path = "ptb-xl/records100/"+folder+"/"+file
@@ -131,7 +133,8 @@ elif bench in ['e', 'E', 'ecg', 'ECG']:
         t = np.linspace(1/record.fs*TIME_SCALE, T, n)
         val = record.p_signal[:, 1]*VAL_SCALE
         eps = EPS
-        if METHOD == 'Gaussian': eps = eps*eps/2
+        # if METHOD == 'Gaussian': eps = eps*eps/2
+        if METHOD == 'Gaussian': eps = eps*eps/125
 
         SAMPLE = int(len(t)*SAMPLE_RATE)
         WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))

@@ -156,7 +156,7 @@ def getECGRes(METHOD, EPS, BATCH_SIZE):
         os.makedirs("results/tabs/", exist_ok = True)
         df.to_csv(f"results/tabs/ECG_{METHOD}_{EPS}_{BATCH_SIZE*TIME_SCALE//FREQUENCY}x{N//BATCH_SIZE}.csv")
     print("="*120)
-    print(f"ECG Dataset (units: t -- 1/{TIME_SCALE} second, amp -- microvolt \u03BCv)")
+    print(f"ECG Dataset (units: t -- 1/{TIME_SCALE} second, amp -- microvolt \u03BCV)")
     print(f"{total_rec} records in total: {N} points per record, sampled at frequency {FREQUENCY} Hz.")
     print(f"Privacy budget per record: {EPS};", end = " ")
     print(f"bounded sinc basis applied: {N//BATCH_SIZE} pieces x {BATCH_SIZE*TIME_SCALE//FREQUENCY} basis func per piece.")
@@ -237,10 +237,12 @@ for i, SAMPLE_RATE in enumerate(SAMPLE_RATE_LIST):
 isTaxi = True
 if sys.argv[1] in ["t", "T", "taxi", "Taxi"]:
     EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
-    RHO_LIST = [0.0000005, 0.000002, 0.0000125, 0.00005, 0.0002, 0.00125, 0.005]
+    # RHO_LIST = [0.0000005, 0.000002, 0.0000125, 0.00005, 0.0002, 0.00125, 0.005]
+    RHO_LIST = [1.25e-8, 5e-8, 3.125e-7, 1.25e-6, 5e-6, 3.125e-5, 1.25e-4]
 elif sys.argv[1] in ["e", "E", "ecg", "ECG"]:
     EPS_LIST = [0.1, 0.2, 0.5, 1.0, 2.0]
-    RHO_LIST = [0.005, 0.02, 0.125, 0.5, 2.0]
+    # RHO_LIST = [0.005, 0.02, 0.125, 0.5, 2.0]
+    RHO_LIST = [8e-4, 1.6e-3, 4e-3, 8e-3, 1.6e-2]
     isTaxi = False
 else: exit(1)
 for EPS in EPS_LIST:

@@ -37,8 +37,9 @@ if len(sys.argv) > 1:
 records = []
 timer = time.time()
 # for i in range(1, 21838):
-for i in range(1, 1000): 
-# for i in range (1, 21):  # sample: run only the first 20 records
+# for i in range(1, 1000):  # run the first folder
+for i in range (513):   # run the first 500 records
+# for i in range (1, 21):   # sample: run only the first 20 records
     folder = "{:05d}".format(i//1000*1000)
     file = "{:05d}_lr".format(i)
     path = "ptb-xl/records100/"+folder+"/"+file
@@ -72,7 +73,8 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
     val = record.p_signal[:, 1]*VAL_SCALE
     func = time_series_func(t, val)
     eps = EPS
-    if METHOD == 'Gaussian': eps = eps*eps/2
+    # if METHOD == 'Gaussian': eps = eps*eps/2
+    if METHOD == 'Gaussian': eps = eps*eps/125
 
     # wfdb.plot_wfdb(record = record, title = "ECG Recording")
     # plt.show()

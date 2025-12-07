@@ -63,7 +63,8 @@ for i in range(len(df)):
         t = df['t'][i][j]
         t = np.array([(cur-t[0]).total_seconds() for cur in t])
         eps = EPS/UNIT_TIME_SCALE*(t[-1]-t[0])
-        if METHOD == 'Gaussian': eps = eps*eps/2
+        # if METHOD == 'Gaussian': eps = eps*eps/2
+        if METHOD == 'Gaussian': eps = eps*eps/80
         x = np.array(df['x'][i][j])
         y = np.array(df['y'][i][j])
         min_x = np.min(x); x -= min_x
