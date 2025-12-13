@@ -1,6 +1,5 @@
 import os, sys
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
 N = 1000
@@ -91,15 +90,15 @@ def plotRes(isTaxi, method):
     WINDOW_SCALE_LIST = [0.05, 0.1]
 
     names = []; results = []; colors = []; markers = []
-    names.append("Least-squres Approximation"); results.append([])
+    names.append("LS Approximation"); results.append([])
     colors.append('tab:blue'); markers.append('^')
     names.append("Privatization"); results.append([])
     colors.append('tab:orange'); markers.append('o')
-    names.append("Continuous Privatization"); results.append([])
+    names.append("Privatization (continuous)"); results.append([])
     colors.append('tab:purple'); markers.append('s')
     names.append("Baseline"); results.append([])
     colors.append('tab:green'); markers.append('P')
-    names.append("Baseline with Window Smoothing"); results.append([])
+    names.append("Baseline (smoothed)"); results.append([])
     colors.append('tab:brown'); markers.append('d')
 
     if isTaxi:
@@ -130,15 +129,15 @@ def plotRes(isTaxi, method):
     for idx in range(len(names)):
         plt.plot(budgets, results[idx], color = colors[idx], 
                 alpha = 0.9, marker = markers[idx], label = names[idx])
-    plt.legend(); plt.xscale('log'); plt.yscale('log')
+    plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')
     plt.xticks(budgets, budgets, minor = False)
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
     plt.ylabel("Error")
-    plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.99, bottom = 0.05)
+    plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.99, bottom = 0.085)
     if SAVE_FIGS:
         filename = "results/figs/" + ("Taxi" if isTaxi else "ECG")
-        filename += "_GP.png" if method == 'Laplace' else "_CGP.png"
+        filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
         plt.savefig(filename)
     else: plt.show()
 
