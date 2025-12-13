@@ -1,0 +1,148 @@
+import os, sys
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+N = 1000
+FREQUENCY = 100
+TIME_SCALE = 80
+UNIT_TIME_SCALE = 43200
+repeat = 10
+SAVE_FIGS = True
+
+def getStats(filename, isBaseline, adaptive, smoothed):
+    file = open(filename, 'r')
+    buffer = [float(x) for x in file.read().strip().split()]
+    funcL2 = buffer[2]; buffer = buffer[3:]
+    if (not isBaseline) and (not adaptive):
+        err_ls = buffer[0] / funcL2
+        buffer = buffer[2:]
+    res = []
+    for i in range(repeat):
+        rec = []
+        if adaptive:
+            rec += [buffer[0]/funcL2]
+            buffer = buffer[2:]
+        if isBaseline:
+            rec += [buffer[0]/funcL2, buffer[2]/funcL2]
+            buffer = buffer[4:]
+        elif smoothed:
+            rec += [buffer[1]/funcL2, buffer[4]/funcL2]
+            buffer = buffer[6:]
+        else:
+            rec += [buffer[1]/funcL2]
+            buffer = buffer[3:]
+        res.append(rec)
+    res = np.array(res)
+    avg = res.mean(axis = 0)
+    if isBaseline or adaptive: return avg.tolist()
+    return [err_ls] + avg.tolist()
+
+def getTaxiRes(METHOD, EPS):
+    dir = f"results/TaxiTrajectory/taxi_{EPS}/"
+    num_curve = 0; stats_sum = np.zeros(3)
+    for subdir in sorted(os.scandir(dir), key = lambda e: e.name):
+        if not subdir.is_dir(): continue
+        folder = os.path.basename(subdir.path)+"/"
+        for file in os.listdir(dir+folder):
+            if METHOD in file:
+                num_curve += 1
+                stats_sum += getStats(dir+folder+file, False, True, True)
+    return stats_sum/num_curve
+
+def getTaxiBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
+    dir = f"results/TaxiTrajectory/taxi_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}/"
+    num_curve = 0; stats_sum = np.zeros(2)
+    for subdir in sorted(os.scandir(dir), key = lambda e: e.name):
+        if not subdir.is_dir(): continue
+        folder = os.path.basename(subdir.path)+"/"
+        for file in os.listdir(dir+folder):
+            if METHOD in file:
+                num_curve += 1
+                stats_sum += getStats(dir+folder+file, True, False, True)
+    return stats_sum/num_curve
+
+def getECGRes(METHOD, EPS, BATCH_SIZE):
+    dir = f"results/ECG/ECG_{EPS}_{BATCH_SIZE*TIME_SCALE//FREQUENCY}x{N//BATCH_SIZE}/"
+    num_rec = 0; stats_sum = np.zeros(3)
+    for i in range(22):
+        folder = "{:05d}/".format(i*1000)
+        for j in range(1000):
+            file = f"{i*1000+j:05d}_lr_{METHOD}.txt"
+            if os.path.exists(dir+folder+file):
+                num_rec += 1
+                stats_sum += getStats(dir+folder+file, False, False, True)
+    return stats_sum/num_rec
+
+def getECGBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
+    dir = f"results/ECG/ECG_bl_{EPS}_{SAMPLE_RATE}_{WINDOW_SCALE}/"
+    num_rec = 0; stats_sum = np.zeros(2)
+    for i in range(22):
+        folder = "{:05d}/".format(i*1000)
+        for j in range(1000):
+            file = f"{i*1000+j:05d}_lr_{METHOD}.txt"
+            if os.path.exists(dir+folder+file):
+                num_rec += 1
+                stats_sum += getStats(dir+folder+file, True, False, True)
+    return stats_sum/num_rec
+
+def plotRes(isTaxi, method):
+    SAMPLE_RATE_LIST = [0.1, 0.2]
+    WINDOW_SCALE_LIST = [0.05, 0.1]
+
+    names = []; results = []; colors = []; markers = []
+    names.append("Least-squres Approximation"); results.append([])
+    colors.append('tab:blue'); markers.append('^')
+    names.append("Privatization"); results.append([])
+    colors.append('tab:orange'); markers.append('o')
+    names.append("Continuous Privatization"); results.append([])
+    colors.append('tab:purple'); markers.append('s')
+    names.append("Baseline"); results.append([])
+    colors.append('tab:green'); markers.append('P')
+    names.append("Baseline with Window Smoothing"); results.append([])
+    colors.append('tab:brown'); markers.append('d')
+
+    if isTaxi:
+        EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
+        RHO_LIST = [1.25e-8, 5e-8, 3.125e-7, 1.25e-6, 5e-6, 3.125e-5, 1.25e-4]
+    else:
+        EPS_LIST = [0.1, 0.2, 0.5, 1.0, 2.0]
+        RHO_LIST = [8e-5, 3.2e-4, 2e-3, 8e-3, 3.2e-2]
+
+    for EPS in EPS_LIST:
+        if isTaxi: res = getTaxiRes(method, EPS)
+        else: res = getECGRes(method, EPS, 20)
+        for idx in range(3):
+            results[idx].append(res[idx])
+        results[3].append(None); results[4].append(None)
+        for SAMPLE_RATE in SAMPLE_RATE_LIST:
+            for WINDOW_SCALE in WINDOW_SCALE_LIST:
+                if isTaxi: res = getTaxiBLRes(method, EPS, SAMPLE_RATE, WINDOW_SCALE)
+                else: res = getECGBLRes(method, EPS, SAMPLE_RATE, WINDOW_SCALE)
+                if results[3][-1] == None: results[3][-1] = res[0]
+                else: results[3][-1] = min(results[3][-1], res[0])
+                if results[4][-1] == None: results[4][-1] = res[1]
+                else: results[4][-1] = min(results[4][-1], res[1])
+
+    budgets = EPS_LIST if method == 'Laplace' else RHO_LIST
+    plt.figure(figsize = (8, 6))
+    plt.axhline(y = 1, color = 'black', linestyle = '--')
+    for idx in range(len(names)):
+        plt.plot(budgets, results[idx], color = colors[idx], 
+                alpha = 0.9, marker = markers[idx], label = names[idx])
+    plt.legend(); plt.xscale('log'); plt.yscale('log')
+    plt.xticks(budgets, budgets, minor = False)
+    if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
+    elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
+    plt.ylabel("Error")
+    plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.99, bottom = 0.05)
+    if SAVE_FIGS:
+        filename = "results/figs/" + ("Taxi" if isTaxi else "ECG")
+        filename += "_GP.png" if method == 'Laplace' else "_CGP.png"
+        plt.savefig(filename)
+    else: plt.show()
+
+plotRes(True, 'Laplace')
+plotRes(True, 'Gaussian')
+plotRes(False, 'Laplace')
+plotRes(False, 'Gaussian')
