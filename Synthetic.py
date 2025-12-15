@@ -1,4 +1,4 @@
-import sys
+import sys, tqdm
 from PrivPwcApprox import *
 from AdaptApprox import *
 
@@ -39,7 +39,7 @@ FUNC_LIST = [genGaus([(100, 50, 10)]),
              genTrig([(100, 'c', 4), (200, 'c', 3)]), 
              genTrig([(100, 's', 8), (-200, 'c', 2)]), 
              genTrig([(100, 's', 4), (200, 'c', 2), (-150, 's', 8)])]
-DEGREE_LIST = [1, 2, 4, 8]
+DEGREE_LIST = [1, 3, 6, 12]
 SAMPLE_LIST = [10, 20, 50, 100]
 WINDOW_SCALE = 0.1
 EPS_LIST = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
@@ -61,7 +61,7 @@ def plotEg(idx, method, eps = 0.1, plotBaseline = False, SAMPLE = 10):
         val_smooth[l] = np.mean(val_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
 
     plt.figure(figsize = (16, 10))
-    for idx, DEGREE in enumerate([1, 2, 4, 8]):
+    for idx, DEGREE in enumerate(DEGREE_LIST):
         solver, B = adaptive_approx(func = func, interval = (0, 100), 
                                     basis = 'Polynomial', degree = DEGREE, 
                                     eps = eps, method = method)
@@ -85,6 +85,8 @@ def expt(method):
     for j, EPS in enumerate(EPS_LIST):
         eps = EPS
         if method == 'Gaussian': eps = eps*eps/100
+        print(f"Running {'GP' if method == 'Laplace' else 'CGP'} with eps = {EPS}...")
+        pbar = tqdm.tqdm(total = len(FUNC_LIST)*repeat*(len(DEGREE_LIST)+len(SAMPLE_LIST)))
         for func in FUNC_LIST:
             funcL2 = None
             for i, DEGREE in enumerate(DEGREE_LIST):
@@ -99,6 +101,7 @@ def expt(method):
                     err_priv += solver.eval('Priv')/funcL2
                     solver.smooth()
                     err_smooth += solver.eval('Priv')/funcL2
+                    pbar.update(1)
                 err_ls /= repeat; err_priv /= repeat; err_smooth /= repeat
                 results[i, 0, j] += err_ls/len(FUNC_LIST)
                 results[i, 1, j] += err_priv/len(FUNC_LIST)
@@ -123,6 +126,7 @@ def expt(method):
                         val_smooth[l] = np.mean(val_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
                     integrand = lambda x: (func(x)-np.interp(x, sample, val_smooth))**2
                     err_smooth += np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2
+                    pbar.update(1)
                 err_priv /= repeat; err_smooth /= repeat
                 if min_err_priv == None: min_err_priv = err_priv
                 else: min_err_priv = min(min_err_priv, err_priv)
@@ -131,6 +135,7 @@ def expt(method):
             for i in range(len(DEGREE_LIST)):
                 results[i, 3, j] += min_err_priv/len(FUNC_LIST)
                 results[i, 4, j] += min_err_smooth/len(FUNC_LIST)
+        pbar.close()
 
     names = []; colors = []; markers = []
     names.append("LS Approximation"); colors.append('tab:blue'); markers.append('^')
