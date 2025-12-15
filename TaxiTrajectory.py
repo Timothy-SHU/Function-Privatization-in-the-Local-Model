@@ -11,6 +11,7 @@ SVT_THRESHOLD_SCALE = 1.0
 repeat = 10
 parallel = None
 interactive = True
+SAVE_FIGS = False
 
 if len(sys.argv) > 1:
     METHOD = str(sys.argv[1])
@@ -73,6 +74,10 @@ for i in range(len(df)):
         time_series = (t, np.column_stack((x, y)))
 
         if interactive:
+            l = 350; r = l+100
+            t = t[l:r]; x = x[l:r]; y = y[l:r]
+            func = time_series_func_2D(t, x, y)
+            time_series = (t, np.column_stack((x, y)))
             solver, B = adaptive_approx(func = func, interval = (t[0], t[-1]), 
                                         basis = 'Linear-2D', degree = 1, 
                                         eps = eps, beta = 0.1, method = METHOD, 
@@ -89,6 +94,7 @@ for i in range(len(df)):
             priv = solver.createPriv(); priv_res = priv(t)
             priv_t_x = priv_res[:, 0]; priv_t_y = priv_res[:, 1]
 
+            _, axs = plt.subplots(1, 2, figsize = (12, 6), sharex = True, sharey = True)
             plt.subplot(1, 2, 1)
             plt.plot(x+min_x, y+min_y, color = 'black', label = "function")
             for k in range(len(solver.breakpoints)-1):
@@ -99,9 +105,9 @@ for i in range(len(df)):
                 priv_res = priv(dense_t)
                 priv_x = priv_res[:, 0]; priv_y = priv_res[:, 1]
                 plt.plot(approx_x+min_x, approx_y+min_y, color = 'tab:blue', 
-                         label = "approximation" if k == 0 else None)
+                         alpha = 0.3, label = "approximation" if k == 0 else None)
                 plt.plot(priv_x+min_x, priv_y+min_y, color = 'tab:orange', 
-                         label = "privatization" if k == 0 else None)
+                         alpha = 0.3, label = "privatization" if k == 0 else None)
 
             smooth_timer = time.time()
             solver.smooth()
@@ -118,13 +124,8 @@ for i in range(len(df)):
             print(f"||f-f_smooth|| = {err_smooth:.5f};")
             print("="*80)
 
-            for k in range(len(solver.breakpoints)-1):
-                l = solver.breakpoints[k]; r = solver.breakpoints[k+1]
-                dense_t = np.linspace(l, r, INTLIM_PER_PIECE)[:-1]
-                smooth_res = smooth(dense_t)
-                smooth_x = smooth_res[:, 0]; smooth_y = smooth_res[:, 1]
-                plt.plot(smooth_x+min_x, smooth_y+min_y, color = 'tab:purple', 
-                         label = "privatization (continuous)" if k == 0 else None)
+            plt.plot(smooth_t_x+min_x, smooth_t_y+min_y, color = 'tab:purple', 
+                     alpha = 0.9, label = "privatization (continuous)")
             plt.legend()
 
             plt.subplot(1, 2, 2)
@@ -146,13 +147,22 @@ for i in range(len(df)):
             for l in range(SAMPLE):
                 x_smooth[l] = np.mean(x_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
                 y_smooth[l] = np.mean(y_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
-            plt.plot(x_priv+min_x, y_priv+min_y, color = 'tab:green', label = "baseline")
-            plt.plot(x_smooth+min_x, y_smooth+min_y, color = 'tab:brown', label = "baseline (smoothed)")
+            plt.plot(x_priv+min_x, y_priv+min_y, color = 'tab:green', 
+                     alpha = 0.9, label = "baseline")
+            plt.plot(x_smooth+min_x, y_smooth+min_y, color = 'tab:brown', 
+                     alpha = 0.9, label = "baseline (smoothed)")
+            plt.tick_params(labelleft = True)
             plt.legend()
-            plt.subplots_adjust(left = 0.03, right = 0.99, top = 0.975, bottom = 0.05, 
-                                wspace = 0.1, hspace = 0.2) 
-            plt.show()
+            plt.subplots_adjust(left = 0.045, right = 0.975, top = 0.97, bottom = 0.075, 
+                                wspace = 0.15, hspace = 0.2)
+            if SAVE_FIGS:
+                filename = "results/figs/Taxi_Eg_"
+                filename += "GP_eps" if METHOD == 'Laplace' else "CGP_rho"
+                filename += f"={eps}.pdf"
+                plt.savefig(filename)
+            else: plt.show()
 
+            """
             plt.subplot(2, 1, 1)
             plt.plot(t, x+min_x, color = 'black')
             plt.plot(t, approx_t_x+min_x, color = 'tab:orange')
@@ -164,6 +174,7 @@ for i in range(len(df)):
             plt.plot(t, priv_t_y+min_y, color = 'tab:blue')
             plt.plot(t, smooth_t_y+min_y, color = 'tab:green')
             plt.show()
+            """
             exit(0)
 
         else:

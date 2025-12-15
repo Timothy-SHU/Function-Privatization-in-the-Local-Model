@@ -11,6 +11,7 @@ repeat = 10
 unbounded = None
 parallel = None
 interactive = True
+SAVE_FIGS = False
 
 def genNoise(method, scale, dim = 1):
     if method == 'Laplace':
@@ -106,16 +107,19 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         print(f"Privatized in {time.time()-iter_timer:.2f} sec (incl preproc).")
 
         dense_t = np.linspace(t[0], T, 10*n+1)
+        plt.figure(figsize = (16, 10))
         plt.subplot(4, 1, 1)
         plt.plot(t/TIME_SCALE, val, color = 'black', label = "function")
         plt.plot(dense_t/TIME_SCALE, approx(dense_t), color = 'tab:blue', 
                  alpha = 0.9, label = "approximation")
-        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)"); plt.legend()
+        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)")
+        plt.legend(loc = 'upper left')
         plt.subplot(4, 1, 2)
         plt.plot(t/TIME_SCALE, val, color = 'black', label = "function")
         plt.plot(dense_t/TIME_SCALE, priv(dense_t), color = 'tab:orange', 
                  alpha = 0.9, label = "privatization")
-        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)"); plt.legend()
+        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)")
+        plt.legend(loc = 'upper left')
 
         smooth_timer = time.time()
         solver.smooth()
@@ -135,7 +139,8 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         plt.plot(t/TIME_SCALE, val, color = 'black', label = "function")
         plt.plot(dense_t/TIME_SCALE, smooth(dense_t), color = 'tab:purple', 
                  alpha = 0.9, label = "privatization (continuous)")
-        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)"); plt.legend()
+        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)")
+        plt.legend(loc = 'upper left')
 
         SAMPLE = int(len(t)*0.1)
         WINDOW = max(1, int(SAMPLE*0.05/2))
@@ -156,10 +161,16 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
                  alpha = 0.9, label = "baseline")
         plt.plot(t[sample]/TIME_SCALE, val_smooth, color = 'tab:brown', 
                  alpha = 0.9, label = "baseline (smoothed)")
-        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)"); plt.legend()
+        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)")
+        plt.legend(loc = 'lower left')
         plt.subplots_adjust(left = 0.03, right = 0.99, top = 0.99, bottom = 0.03, 
                             wspace = 0.1, hspace = 0.125) 
-        plt.show()
+        if SAVE_FIGS:
+            filename = "results/figs/ECG_Eg_"
+            filename += "GP_eps" if METHOD == 'Laplace' else "CGP_rho"
+            filename += f"={eps}.pdf"
+            plt.savefig(filename)
+        else: plt.show()
         exit(0)
     else:
         dir = f"results/ECG/ECG_{EPS}_{BATCH_SIZE*TIME_SCALE//record.fs}x{n//BATCH_SIZE}/{folder}/"
