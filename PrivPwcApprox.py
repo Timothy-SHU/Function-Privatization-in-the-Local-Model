@@ -32,7 +32,9 @@ class PrivatePiecewiseApprox:
         for i in range(len(breakpoints)-1):
             self.basis.append([])
             self.params.append([])
-            for k in range(degree+1):
+            if isinstance(degree, list): deg_list = degree
+            else: deg_list = range(degree+1)
+            for k in deg_list:
                 if basis_type == 'Linear-2D':
                     self.basis[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], k, 0))
                     self.basis[-1].append(self.createBasis(breakpoints[i], breakpoints[i+1], k, 1))
@@ -46,7 +48,7 @@ class PrivatePiecewiseApprox:
         
         self.m = len(breakpoints)-1    # m pieces in total
         self.d = len(self.basis[0])    # each piece has d basis functions
-        if basis_type == 'Polynomial' and degree <= 2:
+        if basis_type == 'Polynomial' and max(deg_list) <= 2:
             self.isOrthonormal = True
         elif basis_type == 'Linear-2D':
             self.isOrthonormal = True
