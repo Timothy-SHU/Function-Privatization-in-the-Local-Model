@@ -1,4 +1,4 @@
-import sys, tqdm
+import sys, random, tqdm
 from PrivPwcApprox import *
 from AdaptBasis import *
 
@@ -33,12 +33,7 @@ FUNC_LIST = [genGaus([(100, 50, 10)]),
              genGaus([(100, 20, 8), (200, 80, 5)]), 
              genGaus([(100, 20, 4), (200, 50, 5), (400, 80, 4)]), 
              genGaus([(50, 5, 2), (200, 25, 8), (150, 50, 10), (400, 75, 4), (100, 90, 8)]), 
-             genGaus([(100, 30, 8), (-200, 50, 10), (200, 80, 5)]), 
-             genTrig([(100, 's', 4)]), 
-             genTrig([(100, 's', 2), (100, 'c', 4)]), 
-             genTrig([(100, 'c', 4), (200, 'c', 3)]), 
-             genTrig([(100, 's', 8), (-200, 'c', 2)]), 
-             genTrig([(100, 's', 4), (200, 'c', 2), (-150, 's', 8)])]
+             genGaus([(100, 30, 8), (-200, 50, 10), (200, 80, 5)])]
 SAMPLE_LIST = [10, 20, 50, 100]
 WINDOW_SCALE = 0.1
 EPS_LIST = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
@@ -47,6 +42,16 @@ RHO_LIST = [1e-6, 4e-6, 2.5e-5, 1e-4, 4e-4, 2.5e-3, 0.01]
 # SAMPLE_LIST = [10, 20]
 # EPS_LIST = [0.01, 0.1, 1.0]
 # RHO_LIST = [1e-6, 1e-4, 0.01]
+
+def genRandomFunc(n, SEED = 42):
+    global FUNC_LIST
+    FUNC_LIST = []; random.seed(SEED)
+    for i in range(n):
+        params = []; m = random.randint(1, 10)
+        for j in range(m):
+            params.append((random.randint(50, 500), random.randint(0, 100), random.randint(2, 16)))
+        # print(params)
+        FUNC_LIST.append(genGaus(params))
 
 def plotEg(idx, method, eps = 0.1, plotBaseline = False, SAMPLE = 10):
     func = FUNC_LIST[idx]
@@ -142,7 +147,7 @@ def expt(method):
     names.append("Baseline (smoothed)"); colors.append('tab:brown'); markers.append('d')
 
     budgets = EPS_LIST if method == 'Laplace' else RHO_LIST
-    plt.figure(figsize = (12, 9))
+    plt.figure(figsize = (8, 6))
     plt.axhline(y = 1, color = 'black', linestyle = '--')
     for idx in range(len(names)):
         plt.plot(budgets, results[idx, :].tolist(), color = colors[idx], 
@@ -152,15 +157,15 @@ def expt(method):
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
     plt.ylabel("Error")
-    plt.subplots_adjust(left = 0.055, right = 0.99, top = 0.99, bottom = 0.06, 
-                        wspace = 0.13, hspace = 0.16)
+    plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.99, bottom = 0.085)
     if SAVE_FIGS:
-        filename = "results/figs/Synth_Adapt"
+        filename = "results/figs/Synth_Adapt_no_filtering"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
         plt.savefig(filename)
     else: plt.show()
 
+genRandomFunc(30)
 # for i in [1, 3, 5, 7, 9]:
-#     plotEg(i, 'Gaussian', eps = 1.0, plotBaseline = True)
+#     plotEg(i, 'Gaussian', eps = 1.0, plotBaseline = True, SAMPLE = 20)
 expt('Laplace')
 expt('Gaussian')
