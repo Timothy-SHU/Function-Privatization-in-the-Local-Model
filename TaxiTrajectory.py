@@ -96,18 +96,21 @@ for i in range(len(df)):
 
             _, axs = plt.subplots(1, 2, figsize = (12, 6), sharex = True, sharey = True)
             plt.subplot(1, 2, 1)
-            plt.plot(x+min_x, y+min_y, color = 'black', label = "function")
+            plt.plot(x+min_x, y+min_y, color = 'black', label = "Trajectory")
+            approx_all = [[], []]; priv_all = [[], []]
             for k in range(len(solver.breakpoints)-1):
                 l = solver.breakpoints[k]; r = solver.breakpoints[k+1]
                 dense_t = np.linspace(l, r, INTLIM_PER_PIECE)[:-1]
                 approx_res = approx(dense_t)
-                approx_x = approx_res[:, 0]; approx_y = approx_res[:, 1]
+                approx_x = approx_res[:, 0]; approx_all[0].append(approx_x)
+                approx_y = approx_res[:, 1]; approx_all[1].append(approx_y)
                 priv_res = priv(dense_t)
-                priv_x = priv_res[:, 0]; priv_y = priv_res[:, 1]
-                plt.plot(approx_x+min_x, approx_y+min_y, color = 'tab:blue', 
-                         alpha = 0.3, label = "approximation" if k == 0 else None)
-                plt.plot(priv_x+min_x, priv_y+min_y, color = 'tab:orange', 
-                         alpha = 0.3, label = "privatization" if k == 0 else None)
+                priv_x = priv_res[:, 0]; priv_all[0].append(priv_x)
+                priv_y = priv_res[:, 1]; priv_all[1].append(priv_y)
+                plt.plot(approx_x+min_x, approx_y+min_y, color = 'tab:brown', 
+                         alpha = 0.3, label = "LS Approximation" if k == 0 else None)
+                plt.plot(priv_x+min_x, priv_y+min_y, color = 'tab:blue', 
+                         alpha = 0.3, label = "PrivFuncSeg" if k == 0 else None)
 
             smooth_timer = time.time()
             solver.smooth()
@@ -124,12 +127,12 @@ for i in range(len(df)):
             print(f"||f-f_smooth|| = {err_smooth:.5f};")
             print("="*80)
 
-            plt.plot(smooth_t_x+min_x, smooth_t_y+min_y, color = 'tab:purple', 
-                     alpha = 0.9, label = "privatization (continuous)")
+            plt.plot(smooth_t_x+min_x, smooth_t_y+min_y, color = 'tab:orange', 
+                     alpha = 0.9, label = "PrivFuncSeg (continuous)")
             plt.legend()
 
             plt.subplot(1, 2, 2)
-            plt.plot(x+min_x, y+min_y, color = 'black', label = "function")
+            plt.plot(x+min_x, y+min_y, color = 'black', label = "Trajectory")
             SAMPLE = max(int(len(t)*0.1), 2)
             WINDOW = max(int(SAMPLE*0.05/2), 1)
             sample = np.linspace(0, len(t)-1, SAMPLE, dtype = int)
@@ -148,9 +151,9 @@ for i in range(len(df)):
                 x_smooth[l] = np.mean(x_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
                 y_smooth[l] = np.mean(y_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
             plt.plot(x_priv+min_x, y_priv+min_y, color = 'tab:green', 
-                     alpha = 0.9, label = "baseline")
-            plt.plot(x_smooth+min_x, y_smooth+min_y, color = 'tab:brown', 
-                     alpha = 0.9, label = "baseline (smoothed)")
+                     alpha = 0.9, label = "Baseline")
+            plt.plot(x_smooth+min_x, y_smooth+min_y, color = 'tab:purple', 
+                     alpha = 0.9, label = "Baseline (smoothed)")
             plt.tick_params(labelleft = True)
             plt.legend()
             plt.subplots_adjust(left = 0.045, right = 0.975, top = 0.97, bottom = 0.075, 
@@ -162,19 +165,23 @@ for i in range(len(df)):
                 plt.savefig(filename)
             else: plt.show()
 
-            """
             plt.subplot(2, 1, 1)
             plt.plot(t, x+min_x, color = 'black')
-            plt.plot(t, approx_t_x+min_x, color = 'tab:orange')
-            plt.plot(t, priv_t_x+min_x, color = 'tab:blue')
-            plt.plot(t, smooth_t_x+min_x, color = 'tab:green')
+            for k in range(len(solver.breakpoints)-1):
+                l = solver.breakpoints[k]; r = solver.breakpoints[k+1]
+                dense_t = np.linspace(l, r, INTLIM_PER_PIECE)[:-1]
+                plt.plot(dense_t, approx_all[0][k]+min_x, color = 'tab:blue')
+                plt.plot(dense_t, priv_all[0][k]+min_x, color = 'tab:orange')
+            plt.plot(t, smooth_t_x+min_x, color = 'tab:purple')
             plt.subplot(2, 1, 2)
             plt.plot(t, y+min_y, color = 'black')
-            plt.plot(t, approx_t_y+min_y, color = 'tab:red')
-            plt.plot(t, priv_t_y+min_y, color = 'tab:blue')
-            plt.plot(t, smooth_t_y+min_y, color = 'tab:green')
+            for k in range(len(solver.breakpoints)-1):
+                l = solver.breakpoints[k]; r = solver.breakpoints[k+1]
+                dense_t = np.linspace(l, r, INTLIM_PER_PIECE)[:-1]
+                plt.plot(dense_t, approx_all[1][k]+min_y, color = 'tab:blue')
+                plt.plot(dense_t, priv_all[1][k]+min_y, color = 'tab:orange')
+            plt.plot(t, smooth_t_y+min_y, color = 'tab:purple')
             plt.show()
-            """
             exit(0)
 
         else:

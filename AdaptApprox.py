@@ -54,6 +54,7 @@ def adaptive_approx(func, interval, basis = 'Polynomial', degree = 1,
         breakpoints = np.linspace(interval[0], interval[1], (2**k_bar)+1)
         solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
         solver.fit(func, time_series, parallel)
+        # if k_bar >= MAX_SEG: break
         v = laplace.rvs(scale = 3/eps0)
         tau = (2**k_bar)*solver.d
         if basis == 'Linear-2D': tau *= 2

@@ -91,15 +91,19 @@ def plotRes(isTaxi, method):
 
     names = []; results = []; colors = []; markers = []
     names.append("LS Approximation"); results.append([])
-    colors.append('tab:blue'); markers.append('^')
+    colors.append('tab:brown'); markers.append('P')
     names.append("Privatization"); results.append([])
-    colors.append('tab:orange'); markers.append('o')
+    colors.append('tab:blue'); markers.append('^')
     names.append("Privatization (continuous)"); results.append([])
-    colors.append('tab:purple'); markers.append('s')
+    colors.append('tab:orange'); markers.append('o')
     names.append("Baseline"); results.append([])
-    colors.append('tab:green'); markers.append('P')
+    colors.append('tab:purple'); markers.append('s')
     names.append("Baseline (smoothed)"); results.append([])
-    colors.append('tab:brown'); markers.append('d')
+    colors.append('tab:green'); markers.append('d')
+
+    if isTaxi:
+        names[1] = "PrivFuncSeg"
+        names[2] = "PrivFuncSeg (continuous)"
 
     if isTaxi:
         EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]

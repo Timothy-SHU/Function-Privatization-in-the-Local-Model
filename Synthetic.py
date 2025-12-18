@@ -72,18 +72,18 @@ def plotEg(idx, method, eps = 0.1, SAMPLE_LIST = [10, 20]):
         print(f"||f-f_priv|| = {solver.eval('Priv'):.5f};", end = "\t")
         plt.subplot(2, 3, idx//2*3+idx%2+1)
         x_dense = np.linspace(0, 100, INTLIM)
-        plt.plot(x_dense, func(x_dense), color = 'black', label = "function")
+        plt.plot(x_dense, func(x_dense), color = 'black', label = "Function")
         for k in range(len(solver.breakpoints)-1):
             l = solver.breakpoints[k]; r = solver.breakpoints[k+1]
             x_piece = np.linspace(l, r, INTLIM_PER_PIECE)[:-1]
-            plt.plot(x_piece, solver.createApprox()(x_piece), color = 'tab:blue', 
-                     alpha = 0.6, label = "approximation" if k == 0 else None)
-            plt.plot(x_piece, solver.createPriv()(x_piece), color = 'tab:orange', 
-                     alpha = 0.6, label = "privatization" if k == 0 else None)
+            plt.plot(x_piece, solver.createApprox()(x_piece), color = 'tab:brown', 
+                     alpha = 0.6, label = "LS Approximation" if k == 0 else None)
+            plt.plot(x_piece, solver.createPriv()(x_piece), color = 'tab:blue', 
+                     alpha = 0.6, label = "PrivFuncSeg" if k == 0 else None)
         solver.smooth()
         print(f"||f-f_smooth|| = {solver.eval('Priv'):.5f}.")
-        plt.plot(x_dense, solver.createPriv()(x_dense), color = 'tab:purple', 
-                 alpha = 0.9, label = "privatization (continuous)")
+        plt.plot(x_dense, solver.createPriv()(x_dense), color = 'tab:orange', 
+                 alpha = 0.9, label = "PrivFuncSeg (continuous)")
         plt.title(f"Degree-{DEGREE} Monomial Basis"); plt.legend(loc = 'upper left')
 
     for idx in range(2):
@@ -106,8 +106,8 @@ def plotEg(idx, method, eps = 0.1, SAMPLE_LIST = [10, 20]):
         integrand = lambda x: (func(x)-np.interp(x, sample, val_smooth))**2
         print(f"||f-f_bl_sm|| = {np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0]):.5f}.")
         plt.plot(x_dense, func(x_dense), color = 'black', label = "function")
-        plt.plot(sample, val_priv, color = 'tab:green', alpha = 0.9, label = "baseline")
-        plt.plot(sample, val_smooth, color = 'tab:brown', alpha = 0.9, label = "baseline (smoothed)")
+        plt.plot(sample, val_priv, color = 'tab:green', alpha = 0.9, label = "Baseline")
+        plt.plot(sample, val_smooth, color = 'tab:purple', alpha = 0.9, label = "Baseline (smoothed)")
         plt.title(f"Baseline with {SAMPLE} Samples"); plt.legend()
 
     plt.subplots_adjust(left = 0.03, right = 0.99, top = 0.96, bottom = 0.03, 
@@ -180,18 +180,18 @@ def expt(method):
         pbar.close()
 
     names = []; colors = []; markers = []
-    names.append("LS Approximation"); colors.append('tab:blue'); markers.append('^')
-    names.append("Privatization"); colors.append('tab:orange'); markers.append('o')
-    names.append("Privatization (continuous)"); colors.append('tab:purple'); markers.append('s')
-    names.append("Baseline"); colors.append('tab:green'); markers.append('P')
-    names.append("Baseline (smoothed)"); colors.append('tab:brown'); markers.append('d')
+    names.append("LS Approximation"); colors.append('tab:brown'); markers.append('P')
+    names.append("PrivFuncSeg"); colors.append('tab:blue'); markers.append('^')
+    names.append("PrivFuncSeg (continuous)"); colors.append('tab:orange'); markers.append('o')
+    names.append("Baseline"); colors.append('tab:green'); markers.append('s')
+    names.append("Baseline (smoothed)"); colors.append('tab:purple'); markers.append('d')
 
     budgets = EPS_LIST if method == 'Laplace' else RHO_LIST
     plt.figure(figsize = (12, 9))
     for i in range(len(DEGREE_LIST)):
         plt.subplot(2, 2, i+1)
         plt.axhline(y = 1, color = 'black', linestyle = '--')
-        for j in range(len(names)):
+        for j in range(1, len(names)):
             plt.plot(budgets, results[i, j, :].tolist(), color = colors[j], 
                     alpha = 0.9, marker = markers[j], label = names[j])
         plt.title(f"Degree-{DEGREE_LIST[i]} Monomial Basis")

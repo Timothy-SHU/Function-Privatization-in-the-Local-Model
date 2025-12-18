@@ -167,8 +167,8 @@ class PrivatePiecewiseApprox:
                 r = min(basis_r, self.ts_t[i+1])
                 if l >= r: continue
                 if self.basis_type == 'Linear-2D':
-                    k1 = (self.ts_val[i+1][task[1]%2]-self.ts_val[i][task[1]%2])/(r-l)
-                    b1 = self.ts_val[i][task[1]%2]-k1*l
+                    k1 = (self.ts_val[i+1][task[1]%2]-self.ts_val[i][task[1]%2])/(self.ts_t[i+1]-self.ts_t[i])
+                    b1 = self.ts_val[i][task[1]%2]-k1*self.ts_t[i]
                     k2 = self.params[task[0]][task[1]//2]['k']
                     b2 = self.params[task[0]][task[1]//2]['b']
                     # integrate (k1*t+b1)*(k2*t+b2) on [l, r]
@@ -176,9 +176,10 @@ class PrivatePiecewiseApprox:
                     # = 1/3*k1*k2*x^3+1/2*(k1*b2+b1*k2)*t^2+b1*b2*t
                     integral += 1/3*k1*k2*(r**3)+1/2*(k1*b2+k2*b1)*(r**2)+(b1*b2)*r
                     integral -= 1/3*k1*k2*(l**3)+1/2*(k1*b2+k2*b1)*(l**2)+(b1*b2)*l
+                    # logging.info(f"{l} {r} {'x' if task[1]%2 == 0 else 'y'} {k1} {b1} {k2} {b2} {integral}")
                 else:
-                    k = (self.ts_val[i+1]-self.ts_val[i])/(r-l)
-                    b = self.ts_val[i]-k*l
+                    k = (self.ts_val[i+1]-self.ts_val[i])/(self.ts_t[i+1]-self.ts_t[i])
+                    b = self.ts_val[i]-k*self.ts_t[i]
                     a = self.params[task[0]][task[1]]['a']
                     # integrate sinc(x-a)*(kx+b) on [l, r]
                     # \int sin(pi(x-a))/(pi(x-a))*(kx+b)
