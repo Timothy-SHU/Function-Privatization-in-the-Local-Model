@@ -37,8 +37,8 @@ FUNC_LIST = [genGaus([(100, 50, 10)]),
 DEGREE_LIST = [1, 4, 8, 16]
 SAMPLE_LIST = [10, 20, 50, 100]
 WINDOW_SCALE = 0.1
-EPS_LIST = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
-RHO_LIST = [1e-6, 4e-6, 2.5e-5, 1e-4, 4e-4, 2.5e-3, 0.01]
+EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
+RHO_LIST = [1e-8, 4e-8, 2.5e-7, 1e-6, 4e-6, 2.5e-5, 1e-4]
 
 # SAMPLE_LIST = [10, 20]
 # EPS_LIST = [0.01, 0.1, 1.0]
@@ -204,6 +204,26 @@ def expt(method):
                         wspace = 0.13, hspace = 0.23)
     if SAVE_FIGS:
         filename = "results/figs/Synth"
+        filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
+        plt.savefig(filename)
+    
+    plt.figure(figsize = (12, 9))
+    for i in range(len(DEGREE_LIST)):
+        plt.subplot(2, 2, i+1)
+        plt.axhline(y = 1, color = 'black', linestyle = '--')
+        for j in range(len(names)):
+            plt.plot(budgets, results[i, j, :].tolist(), color = colors[j], 
+                    alpha = 0.9, marker = markers[j], label = names[j])
+        plt.title(f"Degree-{DEGREE_LIST[i]} Monomial Basis")
+        plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')
+        plt.xticks(budgets, budgets, minor = False)
+        if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
+        elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
+        plt.ylabel("Error")
+    plt.subplots_adjust(left = 0.055, right = 0.99, top = 0.96, bottom = 0.06, 
+                        wspace = 0.13, hspace = 0.23)
+    if SAVE_FIGS:
+        filename = "results/figs/Synth_with_approx"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
         plt.savefig(filename)
     else: plt.show()

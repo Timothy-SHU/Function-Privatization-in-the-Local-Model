@@ -36,8 +36,8 @@ FUNC_LIST = [genGaus([(100, 50, 10)]),
              genGaus([(100, 30, 8), (-200, 50, 10), (200, 80, 5)])]
 SAMPLE_LIST = [10, 20, 50, 100]
 WINDOW_SCALE = 0.1
-EPS_LIST = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
-RHO_LIST = [1e-6, 4e-6, 2.5e-5, 1e-4, 4e-4, 2.5e-3, 0.01]
+EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
+RHO_LIST = [1e-8, 4e-8, 2.5e-7, 1e-6, 4e-6, 2.5e-5, 1e-4]
 
 # SAMPLE_LIST = [10, 20]
 # EPS_LIST = [0.01, 0.1, 1.0]
@@ -149,7 +149,7 @@ def expt(method):
     budgets = EPS_LIST if method == 'Laplace' else RHO_LIST
     plt.figure(figsize = (8, 6))
     plt.axhline(y = 1, color = 'black', linestyle = '--')
-    for idx in range(len(names)):
+    for idx in range(1, len(names)):
         plt.plot(budgets, results[idx, :].tolist(), color = colors[idx], 
                 alpha = 0.9, marker = markers[idx], label = names[idx])
     plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')
@@ -160,6 +160,22 @@ def expt(method):
     plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.99, bottom = 0.085)
     if SAVE_FIGS:
         filename = "results/figs/Synth_Adapt"
+        filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
+        plt.savefig(filename)
+
+    plt.figure(figsize = (8, 6))
+    plt.axhline(y = 1, color = 'black', linestyle = '--')
+    for idx in range(len(names)):
+        plt.plot(budgets, results[idx, :].tolist(), color = colors[idx], 
+                alpha = 0.9, marker = markers[idx], label = names[idx])
+    plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')
+    plt.xticks(budgets, budgets, minor = False)
+    if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
+    elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
+    plt.ylabel("Error")
+    plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.99, bottom = 0.085)
+    if SAVE_FIGS:
+        filename = "results/figs/Synth_Adapt_with_approx"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
         plt.savefig(filename)
     else: plt.show()
