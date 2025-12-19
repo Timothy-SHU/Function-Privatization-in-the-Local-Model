@@ -36,3 +36,6 @@ python ExptStats.py ECG Laplace > results/ECGSummary_GP.txt
 python ExptStats.py ECG Gaussian > results/ECGSummary_CGP.txt
 
 python ExptFigs.py
+
+python Synthetic.py
+python SyntheticAdapt.py

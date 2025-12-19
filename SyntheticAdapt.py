@@ -81,12 +81,12 @@ def plotEg(idx, method, eps = 0.1, plotBaseline = False, SAMPLE = 10):
     print(f"||f-f_bl_sm|| = {np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0]):.5f}.\n")
 
     x_dense = np.linspace(0, 100, INTLIM)
-    plt.plot(x_dense, func(x_dense), color = 'black', label = "function")
+    plt.plot(x_dense, func(x_dense), color = 'black', label = "Function")
     if plotBaseline:
-        plt.plot(sample, val_priv, color = 'tab:green', alpha = 0.9, label = "baseline")
-        plt.plot(sample, val_smooth, color = 'tab:brown', alpha = 0.9, label = "baseline (smoothed)")
-    plt.plot(x_dense, solver.createApprox()(x_dense), color = 'tab:blue', alpha = 0.9, label = "approximation")
-    plt.plot(x_dense, solver.createPriv()(x_dense), color = 'tab:orange', alpha = 0.9, label = "privatization")
+        plt.plot(sample, val_priv, color = 'tab:green', alpha = 0.9, label = "Baseline")
+        plt.plot(sample, val_smooth, color = 'tab:purple', alpha = 0.9, label = "Baseline (smoothed)")
+    plt.plot(x_dense, solver.createApprox()(x_dense), color = 'tab:brown', alpha = 0.9, label = "LS Approximation")
+    plt.plot(x_dense, solver.createPriv()(x_dense), color = 'tab:blue', alpha = 0.9, label = "PrivFuncSelect")
     plt.title(f"Monomial Basis with Degrees: {deg}"); plt.legend(loc = 'upper left')
     plt.show()
 
@@ -141,10 +141,10 @@ def expt(method):
         pbar.close()
 
     names = []; colors = []; markers = []
-    names.append("LS Approximation"); colors.append('tab:blue'); markers.append('^')
-    names.append("Privatization"); colors.append('tab:orange'); markers.append('o')
-    names.append("Baseline"); colors.append('tab:green'); markers.append('P')
-    names.append("Baseline (smoothed)"); colors.append('tab:brown'); markers.append('d')
+    names.append("LS Approximation"); colors.append('tab:brown'); markers.append('P')
+    names.append("PrivFuncSelect"); colors.append('tab:blue'); markers.append('^')
+    names.append("Baseline"); colors.append('tab:green'); markers.append('s')
+    names.append("Baseline (smoothed)"); colors.append('tab:purple'); markers.append('d')
 
     budgets = EPS_LIST if method == 'Laplace' else RHO_LIST
     plt.figure(figsize = (8, 6))
@@ -159,7 +159,7 @@ def expt(method):
     plt.ylabel("Error")
     plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.99, bottom = 0.085)
     if SAVE_FIGS:
-        filename = "results/figs/Synth_Adapt_no_filtering"
+        filename = "results/figs/Synth_Adapt"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
         plt.savefig(filename)
     else: plt.show()

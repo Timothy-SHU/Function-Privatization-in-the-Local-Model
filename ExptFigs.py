@@ -131,6 +131,7 @@ def plotRes(isTaxi, method):
     plt.figure(figsize = (8, 6))
     plt.axhline(y = 1, color = 'black', linestyle = '--')
     for idx in range(len(names)):
+        if not isTaxi and idx == 0: continue
         plt.plot(budgets, results[idx], color = colors[idx], 
                 alpha = 0.9, marker = markers[idx], label = names[idx])
     plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')

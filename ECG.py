@@ -165,7 +165,7 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         plt.plot(t[sample]/TIME_SCALE, val_smooth, color = 'tab:purple', 
                  alpha = 0.9, label = "Baseline (smoothed)")
         plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)")
-        plt.legend(loc = 'upper left')
+        plt.legend(loc = 'lower left')
         plt.subplots_adjust(left = 0.05, right = 0.99, top = 0.99, bottom = 0.06, 
                             wspace = 0.1, hspace = 0.3) 
         if SAVE_FIGS:

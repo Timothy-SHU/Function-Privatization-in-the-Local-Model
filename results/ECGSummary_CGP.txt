@@ -1,0 +1,165 @@
+========================================================================================================================
+ECG Dataset (units: t -- 1/80 second, amp -- microvolt μV)
+500 records in total: 1000 points per record, sampled at frequency 100 Hz.
+Privacy budget per record: 0.1; bounded sinc basis applied: 50 pieces x 16 basis func per piece.
+Below are average statistics per record.
+------------------------------------------------------------------------------------------------------------------------
+         avg ||f|| =  4420.68651.
+avg ||f-f_approx|| =   262.56755;                                                        avg approx time = 314.85661 ms.
+  avg ||f-f_priv|| =  2298.13313;     avg ||f_priv-f_approx|| =  2280.55999;               avg priv time =   3.45299 ms.
+avg ||f-f_smooth|| =  2238.52028;   avg ||f_smooth-f_approx|| =  2220.52820;             avg smooth time =  14.11057 ms.
+                                                                                       avg total runtime = 332.42017 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| = 18680.95477;                                                   avg baseline runtime =   2.10153 ms.
+ avg ||f-f_bl_sm|| = 10568.95384;                                               avg baseline smooth time =   0.24479 ms.
+                                                                              avg baseline total runtime =   2.34632 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| = 18670.40761;                                                   avg baseline runtime =   2.11053 ms.
+ avg ||f-f_bl_sm|| =  7889.09418;                                               avg baseline smooth time =   0.23970 ms.
+                                                                              avg baseline total runtime =   2.35024 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| = 25959.16225;                                                   avg baseline runtime =   3.03834 ms.
+ avg ||f-f_bl_sm|| = 10213.08740;                                               avg baseline smooth time =   0.45962 ms.
+                                                                              avg baseline total runtime =   3.49796 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| = 25951.00209;                                                   avg baseline runtime =   3.05117 ms.
+ avg ||f-f_bl_sm|| =  8047.73627;                                               avg baseline smooth time =   0.45589 ms.
+                                                                              avg baseline total runtime =   3.50706 ms.
+========================================================================================================================
+
+========================================================================================================================
+ECG Dataset (units: t -- 1/80 second, amp -- microvolt μV)
+500 records in total: 1000 points per record, sampled at frequency 100 Hz.
+Privacy budget per record: 0.2; bounded sinc basis applied: 50 pieces x 16 basis func per piece.
+Below are average statistics per record.
+------------------------------------------------------------------------------------------------------------------------
+         avg ||f|| =  4420.68651.
+avg ||f-f_approx|| =   262.56755;                                                        avg approx time = 321.62063 ms.
+  avg ||f-f_priv|| =  1175.27156;     avg ||f_priv-f_approx|| =  1140.84169;               avg priv time =   3.49060 ms.
+avg ||f-f_smooth|| =  1155.90511;   avg ||f_smooth-f_approx|| =  1121.21176;             avg smooth time =  14.10474 ms.
+                                                                                       avg total runtime = 339.21598 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  9970.24316;                                                   avg baseline runtime =   2.12089 ms.
+ avg ||f-f_bl_sm|| =  6354.33615;                                               avg baseline smooth time =   0.25115 ms.
+                                                                              avg baseline total runtime =   2.37204 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  9993.77624;                                                   avg baseline runtime =   2.08802 ms.
+ avg ||f-f_bl_sm|| =  5318.91187;                                               avg baseline smooth time =   0.23878 ms.
+                                                                              avg baseline total runtime =   2.32680 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| = 13265.76330;                                                   avg baseline runtime =   3.02205 ms.
+ avg ||f-f_bl_sm|| =  6174.48874;                                               avg baseline smooth time =   0.45219 ms.
+                                                                              avg baseline total runtime =   3.47424 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| = 13252.15037;                                                   avg baseline runtime =   3.05115 ms.
+ avg ||f-f_bl_sm|| =  5327.18861;                                               avg baseline smooth time =   0.45632 ms.
+                                                                              avg baseline total runtime =   3.50747 ms.
+========================================================================================================================
+
+========================================================================================================================
+ECG Dataset (units: t -- 1/80 second, amp -- microvolt μV)
+500 records in total: 1000 points per record, sampled at frequency 100 Hz.
+Privacy budget per record: 0.5; bounded sinc basis applied: 50 pieces x 16 basis func per piece.
+Below are average statistics per record.
+------------------------------------------------------------------------------------------------------------------------
+         avg ||f|| =  4420.68651.
+avg ||f-f_approx|| =   262.56755;                                                        avg approx time = 317.83594 ms.
+  avg ||f-f_priv|| =   533.83052;     avg ||f_priv-f_approx|| =   456.25240;               avg priv time =   3.45880 ms.
+avg ||f-f_smooth|| =   548.21392;   avg ||f_smooth-f_approx|| =   475.01027;             avg smooth time =  14.16420 ms.
+                                                                                       avg total runtime = 335.45894 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  5432.39187;                                                   avg baseline runtime =   2.09318 ms.
+ avg ||f-f_bl_sm|| =  4491.50562;                                               avg baseline smooth time =   0.24735 ms.
+                                                                              avg baseline total runtime =   2.34052 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  5432.86032;                                                   avg baseline runtime =   2.09892 ms.
+ avg ||f-f_bl_sm|| =  4278.43176;                                               avg baseline smooth time =   0.24078 ms.
+                                                                              avg baseline total runtime =   2.33970 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  5982.71804;                                                   avg baseline runtime =   3.11512 ms.
+ avg ||f-f_bl_sm|| =  4316.06596;                                               avg baseline smooth time =   0.45965 ms.
+                                                                              avg baseline total runtime =   3.57477 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  5979.97366;                                                   avg baseline runtime =   3.03089 ms.
+ avg ||f-f_bl_sm|| =  4205.83600;                                               avg baseline smooth time =   0.46055 ms.
+                                                                              avg baseline total runtime =   3.49144 ms.
+========================================================================================================================
+
+========================================================================================================================
+ECG Dataset (units: t -- 1/80 second, amp -- microvolt μV)
+500 records in total: 1000 points per record, sampled at frequency 100 Hz.
+Privacy budget per record: 1.0; bounded sinc basis applied: 50 pieces x 16 basis func per piece.
+Below are average statistics per record.
+------------------------------------------------------------------------------------------------------------------------
+         avg ||f|| =  4420.68651.
+avg ||f-f_approx|| =   262.56755;                                                        avg approx time = 321.38992 ms.
+  avg ||f-f_priv|| =   353.98503;     avg ||f_priv-f_approx|| =   228.03224;               avg priv time =   3.45471 ms.
+avg ||f-f_smooth|| =   385.27977;   avg ||f_smooth-f_approx|| =   277.49731;             avg smooth time =  14.14995 ms.
+                                                                                       avg total runtime = 338.99459 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  4342.49835;                                                   avg baseline runtime =   2.11513 ms.
+ avg ||f-f_bl_sm|| =  4127.27128;                                               avg baseline smooth time =   0.23954 ms.
+                                                                              avg baseline total runtime =   2.35467 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  4345.72176;                                                   avg baseline runtime =   2.10722 ms.
+ avg ||f-f_bl_sm|| =  4093.82350;                                               avg baseline smooth time =   0.24203 ms.
+                                                                              avg baseline total runtime =   2.34925 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  3926.13858;                                                   avg baseline runtime =   3.05332 ms.
+ avg ||f-f_bl_sm|| =  3956.94993;                                               avg baseline smooth time =   0.45823 ms.
+                                                                              avg baseline total runtime =   3.51155 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  3927.52943;                                                   avg baseline runtime =   3.01988 ms.
+ avg ||f-f_bl_sm|| =  4004.50812;                                               avg baseline smooth time =   0.45316 ms.
+                                                                              avg baseline total runtime =   3.47304 ms.
+========================================================================================================================
+
+========================================================================================================================
+ECG Dataset (units: t -- 1/80 second, amp -- microvolt μV)
+500 records in total: 1000 points per record, sampled at frequency 100 Hz.
+Privacy budget per record: 2.0; bounded sinc basis applied: 50 pieces x 16 basis func per piece.
+Below are average statistics per record.
+------------------------------------------------------------------------------------------------------------------------
+         avg ||f|| =  4420.68651.
+avg ||f-f_approx|| =   262.56755;                                                        avg approx time = 315.26902 ms.
+  avg ||f-f_priv|| =   289.19646;     avg ||f_priv-f_approx|| =   114.02054;               avg priv time =   3.49001 ms.
+avg ||f-f_smooth|| =   329.27275;   avg ||f_smooth-f_approx|| =   196.07780;             avg smooth time =  14.24904 ms.
+                                                                                       avg total runtime = 333.00807 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  4006.60719;                                                   avg baseline runtime =   2.10135 ms.
+ avg ||f-f_bl_sm|| =  4028.78049;                                               avg baseline smooth time =   0.24454 ms.
+                                                                              avg baseline total runtime =   2.34588 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.1 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  4008.08921;                                                   avg baseline runtime =   2.14991 ms.
+ avg ||f-f_bl_sm|| =  4045.44622;                                               avg baseline smooth time =   0.24357 ms.
+                                                                              avg baseline total runtime =   2.39348 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.05 x sample size.
+    avg ||f-f_bl|| =  3173.57469;                                                   avg baseline runtime =   3.06763 ms.
+ avg ||f-f_bl_sm|| =  3861.75882;                                               avg baseline smooth time =   0.45840 ms.
+                                                                              avg baseline total runtime =   3.52602 ms.
+------------------------------------------------------------------------------------------------------------------------
+Baseline: sample size = 0.2 x num datapoints; window size = 0.1 x sample size.
+    avg ||f-f_bl|| =  3172.29261;                                                   avg baseline runtime =   3.02811 ms.
+ avg ||f-f_bl_sm|| =  3952.38949;                                               avg baseline smooth time =   0.45864 ms.
+                                                                              avg baseline total runtime =   3.48674 ms.
+========================================================================================================================
+
