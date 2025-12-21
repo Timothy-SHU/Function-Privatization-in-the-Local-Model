@@ -5,7 +5,7 @@ logging.getLogger('matplotlib.font_manager').disabled = True
 logging.basicConfig(filename = 'info.log', filemode = 'w', level = logging.INFO)
 
 def adaptive_basis(func, interval, basis = 'Polynomial', eps = 0.1, method = 'Laplace', 
-                   enable_filtering = True, STEP_SIZE = 1, MAX_DEGREE = 24):
+                   enable_filtering = True, STEP_SIZE = 1, MAX_DEGREE = 32):
     # SVT for basis degree, uses 1/8 budget
     k0 = 0; solver = None
     if method == 'Laplace': eps0 = eps/8

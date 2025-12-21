@@ -9,6 +9,12 @@ UNIT_TIME_SCALE = 43200
 repeat = 10
 SAVE_FIGS = True
 
+plt.rc('axes', titlesize = 11)
+plt.rc('axes', labelsize = 11)
+plt.rc('xtick', labelsize = 10)
+plt.rc('ytick', labelsize = 10)
+plt.rc('legend', fontsize = 9)
+
 def getStats(filename, isBaseline, adaptive, smoothed):
     file = open(filename, 'r')
     buffer = [float(x) for x in file.read().strip().split()]
@@ -128,7 +134,7 @@ def plotRes(isTaxi, method):
                 else: results[4][-1] = min(results[4][-1], res[1])
 
     budgets = EPS_LIST if method == 'Laplace' else RHO_LIST
-    plt.figure(figsize = (8, 6))
+    plt.figure(figsize = (6, 4))
     plt.axhline(y = 1, color = 'black', linestyle = '--')
     for idx in range(len(names)):
         if not isTaxi and idx == 0: continue
@@ -139,7 +145,7 @@ def plotRes(isTaxi, method):
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
     plt.ylabel("Error")
-    plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.99, bottom = 0.085)
+    plt.subplots_adjust(left = 0.11, right = 0.98, top = 0.99, bottom = 0.13)
     if SAVE_FIGS:
         filename = "results/figs/" + ("Taxi" if isTaxi else "ECG")
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"

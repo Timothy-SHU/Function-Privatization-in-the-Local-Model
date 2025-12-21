@@ -1,9 +1,15 @@
-import sys, random, tqdm
+import os, sys, random, tqdm
 from PrivPwcApprox import *
 from AdaptBasis import *
 
 repeat = 10
 SAVE_FIGS = True
+
+plt.rc('axes', titlesize = 12)
+plt.rc('axes', labelsize = 12)
+plt.rc('xtick', labelsize = 11)
+plt.rc('ytick', labelsize = 11)
+plt.rc('legend', fontsize = 11)
 
 def genNoise(method, scale):
     if method == 'Laplace':
@@ -36,12 +42,15 @@ FUNC_LIST = [genGaus([(100, 50, 10)]),
              genGaus([(100, 30, 8), (-200, 50, 10), (200, 80, 5)])]
 SAMPLE_LIST = [10, 20, 50, 100]
 WINDOW_SCALE = 0.1
+
+# EPS_LIST = [0.01, 0.1, 1.0]
+# RHO_LIST = [1e-6, 1e-4, 0.01]
+
 EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
 RHO_LIST = [1e-8, 4e-8, 2.5e-7, 1e-6, 4e-6, 2.5e-5, 1e-4]
 
-# SAMPLE_LIST = [10, 20]
-# EPS_LIST = [0.01, 0.1, 1.0]
-# RHO_LIST = [1e-6, 1e-4, 0.01]
+# EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
+# RHO_LIST = [1e-8, 4e-8, 2.5e-7, 1e-6, 4e-6, 2.5e-5, 1e-4, 4e-4, 2.5e-3, 1e-2]
 
 def genRandomFunc(n, SEED = 42):
     global FUNC_LIST
@@ -95,50 +104,66 @@ def expt(method):
     for idx, EPS in enumerate(EPS_LIST):
         eps = EPS
         if method == 'Gaussian': eps = eps*eps/100
-        print(f"Running {'GP' if method == 'Laplace' else 'CGP'} with eps = {EPS}...")
-        pbar = tqdm.tqdm(total = len(FUNC_LIST)*repeat*(1+len(SAMPLE_LIST)))
-        for func in FUNC_LIST:
-            funcL2 = None
-            err_ls = 0; err_priv = 0; err_smooth = 0
-            for k in range(repeat):
-                solver, _ = adaptive_basis(func = func, interval = (0, 100), 
-                                           eps = EPS, method = method)
-                if funcL2 == None: funcL2 = np.sqrt(solver.funcSqrInt)
-                err_ls += solver.eval('Approx')/funcL2
-                err_priv += solver.eval('Priv')/funcL2
-                pbar.update(1)
-            err_ls /= repeat; err_priv /= repeat
-            results[0, idx] += err_ls/len(FUNC_LIST)
-            results[1, idx] += err_priv/len(FUNC_LIST)
-
-            min_err_priv = None; min_err_smooth = None
-            for SAMPLE in SAMPLE_LIST:
-                WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
-                err_priv = 0; err_smooth = 0
+        filename = f"results/Synth/SynthAdapt_{EPS}_{method}.txt"
+        if not os.path.isfile(filename):
+            print(f"Running {'GP' if method == 'Laplace' else 'CGP'} with eps = {EPS}...")
+            pbar = tqdm.tqdm(total = len(FUNC_LIST)*repeat*(1+len(SAMPLE_LIST)))
+            for func in FUNC_LIST:
+                funcL2 = None
+                err_ls = 0; err_priv = 0; err_smooth = 0
                 for k in range(repeat):
-                    sample = np.linspace(0, 100, SAMPLE)
-                    val_priv = func(sample)
-                    for i in range(SAMPLE):
-                        if method == 'Laplace':
-                            val_priv[i] += genNoise(method, SAMPLE/EPS)
-                        elif method == 'Gaussian':
-                            val_priv[i] += genNoise(method, np.sqrt(SAMPLE/(2*EPS)))
-                    integrand = lambda x: (func(x)-np.interp(x, sample, val_priv))**2
-                    err_priv += np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2
-                    val_smooth = np.zeros(SAMPLE)
-                    for l in range(SAMPLE):
-                        val_smooth[l] = np.mean(val_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
-                    integrand = lambda x: (func(x)-np.interp(x, sample, val_smooth))**2
-                    err_smooth += np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2
+                    solver, _ = adaptive_basis(func = func, interval = (0, 100), 
+                                            eps = EPS, method = method)
+                    if funcL2 == None: funcL2 = np.sqrt(solver.funcSqrInt)
+                    err_ls += solver.eval('Approx')/funcL2
+                    err_priv += solver.eval('Priv')/funcL2
                     pbar.update(1)
-                err_priv /= repeat; err_smooth /= repeat
-                if min_err_priv == None: min_err_priv = err_priv
-                else: min_err_priv = min(min_err_priv, err_priv)
-                if min_err_smooth == None: min_err_smooth = err_smooth
-                else: min_err_smooth = min(min_err_smooth, err_smooth)
-            results[2, idx] += min_err_priv/len(FUNC_LIST)
-            results[3, idx] += min_err_smooth/len(FUNC_LIST)
-        pbar.close()
+                err_ls /= repeat; err_priv /= repeat
+                results[0, idx] += err_ls/len(FUNC_LIST)
+                results[1, idx] += err_priv/len(FUNC_LIST)
+
+                min_err_priv = None; min_err_smooth = None
+                for SAMPLE in SAMPLE_LIST:
+                    WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
+                    err_priv = 0; err_smooth = 0
+                    for k in range(repeat):
+                        sample = np.linspace(0, 100, SAMPLE)
+                        val_priv = func(sample)
+                        for i in range(SAMPLE):
+                            if method == 'Laplace':
+                                val_priv[i] += genNoise(method, SAMPLE/EPS)
+                            elif method == 'Gaussian':
+                                val_priv[i] += genNoise(method, np.sqrt(SAMPLE/(2*EPS)))
+                        integrand = lambda x: (func(x)-np.interp(x, sample, val_priv))**2
+                        err_priv += np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2
+                        val_smooth = np.zeros(SAMPLE)
+                        for l in range(SAMPLE):
+                            val_smooth[l] = np.mean(val_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
+                        integrand = lambda x: (func(x)-np.interp(x, sample, val_smooth))**2
+                        err_smooth += np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2
+                        pbar.update(1)
+                    err_priv /= repeat; err_smooth /= repeat
+                    if min_err_priv == None: min_err_priv = err_priv
+                    else: min_err_priv = min(min_err_priv, err_priv)
+                    if min_err_smooth == None: min_err_smooth = err_smooth
+                    else: min_err_smooth = min(min_err_smooth, err_smooth)
+                results[2, idx] += min_err_priv/len(FUNC_LIST)
+                results[3, idx] += min_err_smooth/len(FUNC_LIST)
+            os.makedirs("results/Synth/", exist_ok = True)
+            res_file = open(filename, 'w')
+            for k in range(4):
+                res_file.write(f"{results[k, idx]} ")
+            res_file.write("\n")
+            res_file.close()
+            pbar.close()
+        else:
+            print(f"Loading results for {'GP' if method == 'Laplace' else 'CGP'} with eps = {EPS}...", end = '\t')
+            file = open(filename, 'r')
+            buffer = [float(x) for x in file.read().strip().split()]
+            for k in range(4):
+                results[k, idx] = buffer[0]
+                buffer = buffer[1:]
+            print("Complete.")
 
     names = []; colors = []; markers = []
     names.append("LS Approximation"); colors.append('tab:brown'); markers.append('P')
@@ -147,7 +172,7 @@ def expt(method):
     names.append("Baseline (smoothed)"); colors.append('tab:purple'); markers.append('d')
 
     budgets = EPS_LIST if method == 'Laplace' else RHO_LIST
-    plt.figure(figsize = (8, 6))
+    plt.figure(figsize = (6, 4))
     plt.axhline(y = 1, color = 'black', linestyle = '--')
     for idx in range(1, len(names)):
         plt.plot(budgets, results[idx, :].tolist(), color = colors[idx], 
@@ -157,13 +182,14 @@ def expt(method):
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
     plt.ylabel("Error")
-    plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.99, bottom = 0.085)
+    plt.subplots_adjust(left = 0.11, right = 0.98, top = 0.99, bottom = 0.14)
+    if method == 'Gaussian': plt.subplots_adjust(left = 0.12)
     if SAVE_FIGS:
-        filename = "results/figs/Synth_Adapt"
+        filename = "results/figs/SynthAdapt"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
         plt.savefig(filename)
 
-    plt.figure(figsize = (8, 6))
+    plt.figure(figsize = (6, 4))
     plt.axhline(y = 1, color = 'black', linestyle = '--')
     for idx in range(len(names)):
         plt.plot(budgets, results[idx, :].tolist(), color = colors[idx], 
@@ -173,9 +199,10 @@ def expt(method):
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
     plt.ylabel("Error")
-    plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.99, bottom = 0.085)
+    plt.subplots_adjust(left = 0.11, right = 0.98, top = 0.99, bottom = 0.14)
+    if method == 'Gaussian': plt.subplots_adjust(left = 0.12)
     if SAVE_FIGS:
-        filename = "results/figs/Synth_Adapt_with_approx"
+        filename = "results/figs/SynthAdapt_with_approx"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
         plt.savefig(filename)
     else: plt.show()

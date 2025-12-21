@@ -11,7 +11,13 @@ SVT_THRESHOLD_SCALE = 1.0
 repeat = 10
 parallel = None
 interactive = True
-SAVE_FIGS = False
+SAVE_FIGS = True
+
+plt.rc('axes', titlesize = 11)
+plt.rc('axes', labelsize = 11)
+plt.rc('xtick', labelsize = 9)
+plt.rc('ytick', labelsize = 9)
+plt.rc('legend', fontsize = 10)
 
 if len(sys.argv) > 1:
     METHOD = str(sys.argv[1])
@@ -94,7 +100,7 @@ for i in range(len(df)):
             priv = solver.createPriv(); priv_res = priv(t)
             priv_t_x = priv_res[:, 0]; priv_t_y = priv_res[:, 1]
 
-            _, axs = plt.subplots(1, 2, figsize = (12, 6), sharex = True, sharey = True)
+            _, axs = plt.subplots(1, 2, figsize = (8, 5), sharex = True, sharey = True)
             plt.subplot(1, 2, 1)
             plt.plot(x+min_x, y+min_y, color = 'black', label = "Trajectory")
             approx_all = [[], []]; priv_all = [[], []]
@@ -128,8 +134,8 @@ for i in range(len(df)):
             print("="*80)
 
             plt.plot(smooth_t_x+min_x, smooth_t_y+min_y, color = 'tab:orange', 
-                     alpha = 0.9, label = "PrivFuncSeg (continuous)")
-            plt.legend()
+                     alpha = 0.9, label = "PrivFuncSeg\n(continuous)")
+            plt.legend(loc = 'upper left')
 
             plt.subplot(1, 2, 2)
             plt.plot(x+min_x, y+min_y, color = 'black', label = "Trajectory")
@@ -153,18 +159,19 @@ for i in range(len(df)):
             plt.plot(x_priv+min_x, y_priv+min_y, color = 'tab:green', 
                      alpha = 0.9, label = "Baseline")
             plt.plot(x_smooth+min_x, y_smooth+min_y, color = 'tab:purple', 
-                     alpha = 0.9, label = "Baseline (smoothed)")
-            plt.tick_params(labelleft = True)
-            plt.legend()
-            plt.subplots_adjust(left = 0.045, right = 0.975, top = 0.97, bottom = 0.075, 
-                                wspace = 0.15, hspace = 0.2)
+                     alpha = 0.9, label = "Baseline\n(smoothed)")
+            # plt.tick_params(labelleft = True)
+            plt.legend(loc = 'upper left')
+            plt.subplots_adjust(left = 0.06, right = 0.975, top = 0.95, bottom = 0.11, 
+                                wspace = 0.07, hspace = 0.2)
             if SAVE_FIGS:
-                filename = "results/figs/Taxi_Eg_"
+                filename = "results/figs/Taxi_eg_"
                 filename += "GP_eps" if METHOD == 'Laplace' else "CGP_rho"
                 filename += f"={eps}.pdf"
                 plt.savefig(filename)
-            else: plt.show()
+            plt.show()
 
+            """
             plt.subplot(2, 1, 1)
             plt.plot(t, x+min_x, color = 'black')
             for k in range(len(solver.breakpoints)-1):
@@ -182,6 +189,7 @@ for i in range(len(df)):
                 plt.plot(dense_t, priv_all[1][k]+min_y, color = 'tab:orange')
             plt.plot(t, smooth_t_y+min_y, color = 'tab:purple')
             plt.show()
+            """
             exit(0)
 
         else:

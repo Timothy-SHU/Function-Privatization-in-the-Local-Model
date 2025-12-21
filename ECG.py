@@ -11,7 +11,13 @@ repeat = 10
 unbounded = None
 parallel = None
 interactive = True
-SAVE_FIGS = False
+SAVE_FIGS = True
+
+plt.rc('axes', titlesize = 11)
+plt.rc('axes', labelsize = 11)
+plt.rc('xtick', labelsize = 10)
+plt.rc('ytick', labelsize = 9)
+plt.rc('legend', fontsize = 10)
 
 def genNoise(method, scale, dim = 1):
     if method == 'Laplace':
@@ -107,7 +113,7 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         print(f"Privatized in {time.time()-iter_timer:.2f} sec (incl preproc).")
 
         dense_t = np.linspace(t[0], T, 10*n+1)
-        plt.figure(figsize = (16, 8))
+        _, axs = plt.subplots(3, 1, figsize = (10, 6), sharex = True)
         # plt.subplot(4, 1, 1)
         # plt.plot(t/TIME_SCALE, val, color = 'black', label = "ECG Curve")
         # plt.plot(dense_t/TIME_SCALE, approx(dense_t), color = 'tab:brown', 
@@ -121,8 +127,9 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
             dense_t_pwc = np.linspace(l, r, INTLIM_PER_PIECE)[:-1]
             plt.plot(dense_t_pwc/TIME_SCALE, priv(dense_t_pwc), color = 'tab:blue', 
                      alpha = 0.9, label = "Privatization" if k == 0 else None)
-        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)")
-        plt.legend(loc = 'upper left')
+        plt.xlim(-0.1, 10.1)
+        plt.ylabel(r"amplitude ($\mu$V)")
+        plt.legend(loc = 'upper left', ncol = 2)
 
         smooth_timer = time.time()
         solver.smooth()
@@ -142,8 +149,8 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         plt.plot(t/TIME_SCALE, val, color = 'black', label = "ECG Curve")
         plt.plot(dense_t/TIME_SCALE, smooth(dense_t), color = 'tab:orange', 
                  alpha = 0.9, label = "Privatization (continuous)")
-        plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)")
-        plt.legend(loc = 'upper left')
+        plt.ylabel(r"amplitude ($\mu$V)")
+        plt.legend(loc = 'upper left', ncol = 2)
 
         SAMPLE = int(len(t)*0.1)
         WINDOW = max(1, int(SAMPLE*0.05/2))
@@ -165,15 +172,15 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         plt.plot(t[sample]/TIME_SCALE, val_smooth, color = 'tab:purple', 
                  alpha = 0.9, label = "Baseline (smoothed)")
         plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)")
-        plt.legend(loc = 'lower left')
-        plt.subplots_adjust(left = 0.05, right = 0.99, top = 0.99, bottom = 0.06, 
-                            wspace = 0.1, hspace = 0.3) 
+        plt.legend(loc = 'upper left', ncol = 3)
+        plt.subplots_adjust(left = 0.07, right = 0.99, top = 0.99, bottom = 0.08, 
+                            wspace = 0.1, hspace = 0.08)
         if SAVE_FIGS:
-            filename = "results/figs/ECG_Eg_"
+            filename = "results/figs/ECG_eg_"
             filename += "GP_eps" if METHOD == 'Laplace' else "CGP_rho"
             filename += f"={eps}.pdf"
             plt.savefig(filename)
-        else: plt.show()
+        plt.show()
         exit(0)
     else:
         dir = f"results/ECG/ECG_{EPS}_{BATCH_SIZE*TIME_SCALE//record.fs}x{n//BATCH_SIZE}/{folder}/"

@@ -5,8 +5,9 @@ ptb-xl/records100/*
 !ptb-xl/records100/00000
 ptb-xl/records500/*
 
-results/TaxiTrajectory/*/
-results/ECG/*/
+results/Synth/
+results/TaxiTrajectory/
+results/ECG/
 
 archived/datasets/
 archived/results/*/
