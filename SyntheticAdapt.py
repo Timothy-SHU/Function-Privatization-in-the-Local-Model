@@ -4,12 +4,17 @@ from AdaptBasis import *
 
 repeat = 10
 SAVE_FIGS = True
+GET_MSE = False
 
 plt.rc('axes', titlesize = 12)
 plt.rc('axes', labelsize = 12)
 plt.rc('xtick', labelsize = 11)
 plt.rc('ytick', labelsize = 11)
 plt.rc('legend', fontsize = 11)
+
+def getMSE(arr):
+    avg = arr.mean()
+    return ((arr-avg)**2).mean()
 
 def genNoise(method, scale):
     if method == 'Laplace':
@@ -100,7 +105,7 @@ def plotEg(idx, method, eps = 0.1, plotBaseline = False, SAMPLE = 10):
     plt.show()
 
 def expt(method):
-    results = np.zeros((4, len(EPS_LIST)))
+    results = np.zeros((8, len(EPS_LIST)))
     for idx, EPS in enumerate(EPS_LIST):
         eps = EPS
         if method == 'Gaussian': eps = eps*eps/100
@@ -110,22 +115,26 @@ def expt(method):
             pbar = tqdm.tqdm(total = len(FUNC_LIST)*repeat*(1+len(SAMPLE_LIST)))
             for func in FUNC_LIST:
                 funcL2 = None
-                err_ls = 0; err_priv = 0; err_smooth = 0
+                err_ls = []; err_priv = []; err_smooth = []
                 for k in range(repeat):
                     solver, _ = adaptive_basis(func = func, interval = (0, 100), 
                                             eps = EPS, method = method)
                     if funcL2 == None: funcL2 = np.sqrt(solver.funcSqrInt)
-                    err_ls += solver.eval('Approx')/funcL2
-                    err_priv += solver.eval('Priv')/funcL2
+                    err_ls.append(solver.eval('Approx')/funcL2)
+                    err_priv.append(solver.eval('Priv')/funcL2)
                     pbar.update(1)
-                err_ls /= repeat; err_priv /= repeat
-                results[0, idx] += err_ls/len(FUNC_LIST)
-                results[1, idx] += err_priv/len(FUNC_LIST)
+                err_ls = np.array(err_ls)
+                err_priv = np.array(err_priv)
+                results[0, idx] += err_ls.mean()/len(FUNC_LIST)
+                results[1, idx] += err_priv.mean()/len(FUNC_LIST)
+                results[4, idx] += getMSE(err_ls)/len(FUNC_LIST)
+                results[5, idx] += getMSE(err_priv)/len(FUNC_LIST)
 
                 min_err_priv = None; min_err_smooth = None
+                min_err_priv_MSE = None; min_err_smooth_MSE = None
                 for SAMPLE in SAMPLE_LIST:
                     WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
-                    err_priv = 0; err_smooth = 0
+                    err_priv = []; err_smooth = []
                     for k in range(repeat):
                         sample = np.linspace(0, 100, SAMPLE)
                         val_priv = func(sample)
@@ -135,23 +144,30 @@ def expt(method):
                             elif method == 'Gaussian':
                                 val_priv[i] += genNoise(method, np.sqrt(SAMPLE/(2*EPS)))
                         integrand = lambda x: (func(x)-np.interp(x, sample, val_priv))**2
-                        err_priv += np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2
+                        err_priv.append(np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2)
                         val_smooth = np.zeros(SAMPLE)
                         for l in range(SAMPLE):
                             val_smooth[l] = np.mean(val_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
                         integrand = lambda x: (func(x)-np.interp(x, sample, val_smooth))**2
-                        err_smooth += np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2
+                        err_smooth.append(np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2)
                         pbar.update(1)
-                    err_priv /= repeat; err_smooth /= repeat
-                    if min_err_priv == None: min_err_priv = err_priv
-                    else: min_err_priv = min(min_err_priv, err_priv)
-                    if min_err_smooth == None: min_err_smooth = err_smooth
-                    else: min_err_smooth = min(min_err_smooth, err_smooth)
+                    err_priv = np.array(err_priv)
+                    err_smooth = np.array(err_smooth)
+                    if min_err_priv == None: min_err_priv = err_priv.mean()
+                    else: min_err_priv = min(min_err_priv, err_priv.mean())
+                    if min_err_smooth == None: min_err_smooth = err_smooth.mean()
+                    else: min_err_smooth = min(min_err_smooth, err_smooth.mean())
+                    if min_err_priv_MSE == None: min_err_priv_MSE = getMSE(err_priv)
+                    else: min_err_priv_MSE = min(min_err_priv_MSE, getMSE(err_priv))
+                    if min_err_smooth_MSE == None: min_err_smooth_MSE = getMSE(err_smooth)
+                    else: min_err_smooth_MSE = min(min_err_smooth_MSE, getMSE(err_smooth))
                 results[2, idx] += min_err_priv/len(FUNC_LIST)
                 results[3, idx] += min_err_smooth/len(FUNC_LIST)
+                results[6, idx] += min_err_priv_MSE/len(FUNC_LIST)
+                results[7, idx] += min_err_smooth_MSE/len(FUNC_LIST)
             os.makedirs("results/Synth/", exist_ok = True)
             res_file = open(filename, 'w')
-            for k in range(4):
+            for k in range(8):
                 res_file.write(f"{results[k, idx]} ")
             res_file.write("\n")
             res_file.close()
@@ -160,10 +176,13 @@ def expt(method):
             print(f"Loading results for {'GP' if method == 'Laplace' else 'CGP'} with eps = {EPS}...", end = '\t')
             file = open(filename, 'r')
             buffer = [float(x) for x in file.read().strip().split()]
-            for k in range(4):
+            for k in range(8):
                 results[k, idx] = buffer[0]
                 buffer = buffer[1:]
             print("Complete.")
+    
+    if GET_MSE: results = results[4:, :]
+    else: results = results[:4, :]
 
     names = []; colors = []; markers = []
     names.append("LS Approximation"); colors.append('tab:brown'); markers.append('P')
@@ -176,34 +195,36 @@ def expt(method):
     plt.axhline(y = 1, color = 'black', linestyle = '--')
     for idx in range(1, len(names)):
         plt.plot(budgets, results[idx, :].tolist(), color = colors[idx], 
-                alpha = 0.9, marker = markers[idx], label = names[idx])
+                 alpha = 0.9, marker = markers[idx], label = names[idx])
     plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')
     plt.xticks(budgets, budgets, minor = False)
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
-    plt.ylabel("Error")
+    plt.ylabel("Error MSE" if GET_MSE else "Error")
     plt.subplots_adjust(left = 0.11, right = 0.98, top = 0.99, bottom = 0.14)
     if method == 'Gaussian': plt.subplots_adjust(left = 0.12)
     if SAVE_FIGS:
         filename = "results/figs/SynthAdapt"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
+        if GET_MSE: filename = filename[:-4]+"_MSE.pdf"
         plt.savefig(filename)
 
     plt.figure(figsize = (6, 4))
     plt.axhline(y = 1, color = 'black', linestyle = '--')
     for idx in range(len(names)):
         plt.plot(budgets, results[idx, :].tolist(), color = colors[idx], 
-                alpha = 0.9, marker = markers[idx], label = names[idx])
+                 alpha = 0.9, marker = markers[idx], label = names[idx])
     plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')
     plt.xticks(budgets, budgets, minor = False)
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
-    plt.ylabel("Error")
+    plt.ylabel("Error MSE" if GET_MSE else "Error")
     plt.subplots_adjust(left = 0.11, right = 0.98, top = 0.99, bottom = 0.14)
     if method == 'Gaussian': plt.subplots_adjust(left = 0.12)
     if SAVE_FIGS:
         filename = "results/figs/SynthAdapt_with_approx"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
+        if GET_MSE: filename = filename[:-4]+"_MSE.pdf"
         plt.savefig(filename)
     else: plt.show()
 

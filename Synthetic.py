@@ -12,6 +12,10 @@ plt.rc('xtick', labelsize = 9)
 plt.rc('ytick', labelsize = 9)
 plt.rc('legend', fontsize = 10)
 
+def getMSE(arr):
+    avg = arr.mean()
+    return ((arr-avg)**2).mean()
+
 def genNoise(method, scale):
     if method == 'Laplace':
         return laplace.rvs(scale = scale)
@@ -130,7 +134,7 @@ def plotEg(idx, method, eps = 0.1, SAMPLE_LIST = [10, 20]):
     plt.show()
 
 def expt(method):
-    results = np.zeros((len(DEGREE_LIST), 5, len(EPS_LIST)))
+    results = np.zeros((len(DEGREE_LIST), 10, len(EPS_LIST)))
     for j, EPS in enumerate(EPS_LIST):
         eps = EPS
         if method == 'Gaussian': eps = eps*eps/100
@@ -141,28 +145,34 @@ def expt(method):
             for func in FUNC_LIST:
                 funcL2 = None
                 for i, DEGREE in enumerate(DEGREE_LIST):
-                    err_ls = 0; err_priv = 0; err_smooth = 0
+                    err_ls = []; err_priv = []; err_smooth = []
                     for k in range(repeat):
                         solver, B = adaptive_approx(func = func, interval = (0, 100), 
                                                     basis = 'Polynomial', degree = DEGREE, 
                                                     eps = EPS, method = method)
                         if funcL2 == None: funcL2 = np.sqrt(solver.funcSqrInt)
                         solver.privatize(eps = B, method = method)
-                        err_ls += solver.eval('Approx')/funcL2
-                        err_priv += solver.eval('Priv')/funcL2
+                        err_ls.append(solver.eval('Approx')/funcL2)
+                        err_priv.append(solver.eval('Priv')/funcL2)
                         solver.smooth()
-                        err_smooth += solver.eval('Priv')/funcL2
+                        err_smooth.append(solver.eval('Priv')/funcL2)
                         pbar.update(1)
-                    err_ls /= repeat; err_priv /= repeat; err_smooth /= repeat
+                    err_ls = np.array(err_ls)
+                    err_priv = np.array(err_priv)
+                    err_smooth = np.array(err_smooth)
                     # print(func, DEGREE, err_priv, err_smooth)
-                    results[i, 0, j] += err_ls/len(FUNC_LIST)
-                    results[i, 1, j] += err_priv/len(FUNC_LIST)
-                    results[i, 2, j] += err_smooth/len(FUNC_LIST)
+                    results[i, 0, j] += err_ls.mean()/len(FUNC_LIST)
+                    results[i, 1, j] += err_priv.mean()/len(FUNC_LIST)
+                    results[i, 2, j] += err_smooth.mean()/len(FUNC_LIST)
+                    results[i, 5, j] += getMSE(err_ls)/len(FUNC_LIST)
+                    results[i, 6, j] += getMSE(err_priv)/len(FUNC_LIST)
+                    results[i, 7, j] += getMSE(err_smooth)/len(FUNC_LIST)
 
                 min_err_priv = None; min_err_smooth = None
+                min_err_priv_MSE = None; min_err_smooth_MSE = None
                 for SAMPLE in SAMPLE_LIST:
                     WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
-                    err_priv = 0; err_smooth = 0
+                    err_priv = []; err_smooth = []
                     for k in range(repeat):
                         sample = np.linspace(0, 100, SAMPLE)
                         val_priv = func(sample)
@@ -172,27 +182,34 @@ def expt(method):
                             elif method == 'Gaussian':
                                 val_priv[i] += genNoise(method, np.sqrt(SAMPLE/(2*EPS)))
                         integrand = lambda x: (func(x)-np.interp(x, sample, val_priv))**2
-                        err_priv += np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2
+                        err_priv.append(np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2)
                         val_smooth = np.zeros(SAMPLE)
                         for l in range(SAMPLE):
                             val_smooth[l] = np.mean(val_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
                         integrand = lambda x: (func(x)-np.interp(x, sample, val_smooth))**2
-                        err_smooth += np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2
+                        err_smooth.append(np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2)
                         pbar.update(1)
-                    err_priv /= repeat; err_smooth /= repeat
+                    err_priv = np.array(err_priv)
+                    err_smooth = np.array(err_smooth)
                     # print(func, SAMPLE, err_priv)
-                    if min_err_priv == None: min_err_priv = err_priv
-                    else: min_err_priv = min(min_err_priv, err_priv)
-                    if min_err_smooth == None: min_err_smooth = err_smooth
-                    else: min_err_smooth = min(min_err_smooth, err_smooth)
+                    if min_err_priv == None: min_err_priv = err_priv.mean()
+                    else: min_err_priv = min(min_err_priv, err_priv.mean())
+                    if min_err_smooth == None: min_err_smooth = err_smooth.mean()
+                    else: min_err_smooth = min(min_err_smooth, err_smooth.mean())
+                    if min_err_priv_MSE == None: min_err_priv_MSE = getMSE(err_priv)
+                    else: min_err_priv_MSE = min(min_err_priv_MSE, getMSE(err_priv))
+                    if min_err_smooth_MSE == None: min_err_smooth_MSE = getMSE(err_smooth)
+                    else: min_err_smooth_MSE = min(min_err_smooth_MSE, getMSE(err_smooth))
                 # print(func, min_err_priv, min_err_smooth)
                 for i in range(len(DEGREE_LIST)):
                     results[i, 3, j] += min_err_priv/len(FUNC_LIST)
                     results[i, 4, j] += min_err_smooth/len(FUNC_LIST)
+                    results[i, 8, j] += min_err_priv_MSE/len(FUNC_LIST)
+                    results[i, 9, j] += min_err_smooth_MSE/len(FUNC_LIST)
             os.makedirs("results/Synth/", exist_ok = True)
             res_file = open(filename, 'w')
             for i in range(len(DEGREE_LIST)):
-                for k in range(5):
+                for k in range(10):
                     res_file.write(f"{results[i, k, j]} ")
                 res_file.write("\n")
             res_file.close()
@@ -202,10 +219,13 @@ def expt(method):
             file = open(filename, 'r')
             buffer = [float(x) for x in file.read().strip().split()]
             for i in range(len(DEGREE_LIST)):
-                for k in range(5):
+                for k in range(10):
                     results[i, k, j] = buffer[0]
                     buffer = buffer[1:]
             print("Complete.")
+    
+    if GET_MSE: results = results[:, 5:, :]
+    else: results = results[:, :5, :]
 
     names = []; colors = []; markers = []
     names.append("LS Approximation"); colors.append('tab:brown'); markers.append('P')
