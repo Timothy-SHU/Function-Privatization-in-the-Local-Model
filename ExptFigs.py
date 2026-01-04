@@ -8,6 +8,7 @@ TIME_SCALE = 80
 UNIT_TIME_SCALE = 43200
 repeat = 10
 SAVE_FIGS = True
+GET_MSE = False
 
 plt.rc('axes', titlesize = 11)
 plt.rc('axes', labelsize = 11)
@@ -40,6 +41,8 @@ def getStats(filename, isBaseline, adaptive, smoothed):
         res.append(rec)
     res = np.array(res)
     avg = res.mean(axis = 0)
+    if GET_MSE:
+        avg = ((res-avg)**2).mean(axis = 0)
     if isBaseline or adaptive: return avg.tolist()
     return [err_ls] + avg.tolist()
 
@@ -144,11 +147,13 @@ def plotRes(isTaxi, method):
     plt.xticks(budgets, budgets, minor = False)
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
-    plt.ylabel("Error")
+    if GET_MSE: plt.ylabel("Error MSE")
+    else: plt.ylabel("Error")
     plt.subplots_adjust(left = 0.11, right = 0.98, top = 0.99, bottom = 0.13)
     if SAVE_FIGS:
         filename = "results/figs/" + ("Taxi" if isTaxi else "ECG")
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
+        if GET_MSE: filename = filename[:-4]+"_MSE.pdf"
         plt.savefig(filename)
     else: plt.show()
 

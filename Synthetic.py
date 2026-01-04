@@ -4,6 +4,7 @@ from AdaptApprox import *
 
 repeat = 10
 SAVE_FIGS = True
+GET_MSE = False
 
 plt.rc('axes', titlesize = 12)
 plt.rc('axes', labelsize = 12)
@@ -68,7 +69,7 @@ def plotEg(idx, method, eps = 0.1, SAMPLE_LIST = [10, 20]):
     if method == 'Gaussian': eps = eps*eps/100
     print("="*72+f" Curve #{idx+1:2d} "+"="*72)
     
-    plt.figure(figsize = (10, 7))
+    plt.figure(figsize = (8, 10))
     for idx, DEGREE in enumerate(DEGREE_LIST):
         solver, B = adaptive_approx(func = func, interval = (0, 100), 
                                     basis = 'Polynomial', degree = DEGREE, 
@@ -79,7 +80,7 @@ def plotEg(idx, method, eps = 0.1, SAMPLE_LIST = [10, 20]):
         print(f"||f-f_approx|| = {solver.eval('Approx'):.5f};", end = "\t")
         # print(f"||f_approx-f_priv|| = {solver.evalPrivLoss():.5f};", end = "\t")
         print(f"||f-f_priv|| = {solver.eval('Priv'):.5f};", end = "\t")
-        plt.subplot(2, 3, idx//2*3+idx%2+1)
+        plt.subplot(3, 2, idx+1)
         x_dense = np.linspace(0, 100, INTLIM)
         plt.plot(x_dense, func(x_dense), color = 'black', label = "Function")
         for k in range(len(solver.breakpoints)-1):
@@ -96,7 +97,7 @@ def plotEg(idx, method, eps = 0.1, SAMPLE_LIST = [10, 20]):
         plt.title(f"Degree-{DEGREE} Monomial Basis"); plt.legend(loc = 'upper left')
 
     for idx in range(2):
-        plt.subplot(2, 3, idx*3+3)
+        plt.subplot(3, 2, idx+5)
         SAMPLE = SAMPLE_LIST[idx]
         WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
         sample = np.linspace(0, 100, SAMPLE)
@@ -119,8 +120,8 @@ def plotEg(idx, method, eps = 0.1, SAMPLE_LIST = [10, 20]):
         plt.plot(sample, val_smooth, color = 'tab:purple', alpha = 0.9, label = "Baseline\n(smoothed)")
         plt.title(f"Baseline with {SAMPLE} Samples"); plt.legend()
 
-    plt.subplots_adjust(left = 0.035, right = 0.99, top = 0.96, bottom = 0.03, 
-                        wspace = 0.16, hspace = 0.17)
+    plt.subplots_adjust(left = 0.055, right = 0.99, top = 0.97, bottom = 0.025, 
+                        wspace = 0.16, hspace = 0.2)
     if SAVE_FIGS:
         filename = "results/figs/Synth_eg_"
         filename += "GP_eps" if method == 'Laplace' else "CGP_rho"
@@ -229,12 +230,13 @@ def expt(method):
         if i//2 == 1:
             if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
             elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
-        if i%2 == 0: plt.ylabel("Error")
+        if i%2 == 0: plt.ylabel("Error MSE" if GET_MSE else "Error")
     plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.97, bottom = 0.06, 
                         wspace = 0.04, hspace = 0.16)
     if SAVE_FIGS:
         filename = "results/figs/Synth"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
+        if GET_MSE: filename = filename[:-4]+"_MSE.pdf"
         plt.savefig(filename)
     
     _, axs = plt.subplots(2, 2, figsize = (8, 8), sharex = True, sharey = True)
@@ -253,12 +255,13 @@ def expt(method):
         if i//2 == 1:
             if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
             elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
-        if i%2 == 0: plt.ylabel("Error")
+        if i%2 == 0: plt.ylabel("Error MSE" if GET_MSE else "Error")
     plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.97, bottom = 0.06, 
                         wspace = 0.04, hspace = 0.2)
     if SAVE_FIGS:
         filename = "results/figs/Synth_with_approx"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
+        if GET_MSE: filename = filename[:-4]+"_MSE.pdf"
         plt.savefig(filename)
     else: plt.show()
 
