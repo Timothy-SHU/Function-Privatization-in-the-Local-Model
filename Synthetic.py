@@ -2,7 +2,7 @@ import os, sys, random, tqdm
 from PrivPwcApprox import *
 from AdaptApprox import *
 
-repeat = 10
+repeat = 50
 SAVE_FIGS = True
 GET_MSE = False
 
@@ -49,20 +49,22 @@ DEGREE_LIST = [1, 4, 8, 16]
 SAMPLE_LIST = [10, 20, 50, 100]
 WINDOW_SCALE = 0.1
 
-# EPS_LIST = [0.01, 0.1, 1.0]
-# RHO_LIST = [1e-6, 1e-4, 0.01]
+# EPS_LIST = [0.001, 0.01, 0.1, 1.0]
+# RHO_LIST = [5e-7, 5e-5, 5e-3, 0.5]
 
-EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
-RHO_LIST = [1e-8, 4e-8, 2.5e-7, 1e-6, 4e-6, 2.5e-5, 1e-4]
+EPS_LIST = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
+RHO_LIST = [1e-5, 4e-5, 2.5e-4, 0.001, 0.004, 0.025, 0.1]
+# RHO_LIST = [5e-5, 2e-4, 1.25e-3, 5e-3, 2e-2, 0.125, 0.5]
 
 # EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
-# RHO_LIST = [1e-8, 4e-8, 2.5e-7, 1e-6, 4e-6, 2.5e-5, 1e-4, 4e-4, 2.5e-3, 1e-2]
+# RHO_LIST = [1e-7, 4e-7, 2.5e-6, 1e-5, 4e-5, 2.5e-4, 0.001, 0.004, 0.025, 0.1]
+# RHO_LIST = [5e-7, 2e-6, 1.25e-5, 5e-5, 2e-4, 1.25e-3, 5e-3, 2e-2, 0.125, 0.5]
 
 def genRandomFunc(n, SEED = 42):
     global FUNC_LIST
     FUNC_LIST = []; random.seed(SEED)
     for i in range(n):
-        params = []; m = random.randint(1, 10)
+        params = []; m = random.randint(1, 5)
         for j in range(m):
             params.append((random.randint(50, 500), random.randint(0, 100), random.randint(2, 16)))
         # print(params)
@@ -137,7 +139,7 @@ def expt(method):
     results = np.zeros((len(DEGREE_LIST), 10, len(EPS_LIST)))
     for j, EPS in enumerate(EPS_LIST):
         eps = EPS
-        if method == 'Gaussian': eps = eps*eps/100
+        if method == 'Gaussian': eps = eps*eps/10
         filename = f"results/Synth/Synth_{EPS}_{method}.txt"
         if not os.path.isfile(filename):
             print(f"Running {'GP' if method == 'Laplace' else 'CGP'} with eps = {EPS}...")
@@ -192,14 +194,12 @@ def expt(method):
                     err_priv = np.array(err_priv)
                     err_smooth = np.array(err_smooth)
                     # print(func, SAMPLE, err_priv)
-                    if min_err_priv == None: min_err_priv = err_priv.mean()
-                    else: min_err_priv = min(min_err_priv, err_priv.mean())
-                    if min_err_smooth == None: min_err_smooth = err_smooth.mean()
-                    else: min_err_smooth = min(min_err_smooth, err_smooth.mean())
-                    if min_err_priv_MSE == None: min_err_priv_MSE = getMSE(err_priv)
-                    else: min_err_priv_MSE = min(min_err_priv_MSE, getMSE(err_priv))
-                    if min_err_smooth_MSE == None: min_err_smooth_MSE = getMSE(err_smooth)
-                    else: min_err_smooth_MSE = min(min_err_smooth_MSE, getMSE(err_smooth))
+                    if min_err_priv == None or err_priv.mean() < min_err_priv:
+                        min_err_priv = err_priv.mean()
+                        min_err_priv_MSE = getMSE(err_priv)
+                    if min_err_smooth == None or err_smooth.mean() < min_err_smooth:
+                        min_err_smooth = err_smooth.mean()
+                        min_err_smooth_MSE = getMSE(err_smooth)
                 # print(func, min_err_priv, min_err_smooth)
                 for i in range(len(DEGREE_LIST)):
                     results[i, 3, j] += min_err_priv/len(FUNC_LIST)
@@ -286,7 +286,7 @@ def expt(method):
     else: plt.show()
 
 # plotEg(1, 'Laplace')
-genRandomFunc(30)
+genRandomFunc(20)
 # for i in range(len(FUNC_LIST)):
 #     plotEg(i, 'Gaussian', eps = 0.1, plotBaseline = True, SAMPLE = 20)
 expt('Laplace')
