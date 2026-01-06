@@ -1,6 +1,6 @@
 echo "Preprocessing taxi trajectory data..."
-# python PreprocCabData.py > /dev/null
-# python SelectCabData.py > /dev/null
+python PreprocCabData.py > /dev/null
+python SelectCabData.py > /dev/null
 for METHOD in "Laplace" "Gaussian"; do
     for EPS in 0.001 0.002 0.005 0.01 0.02 0.05 0.1; do
         echo "Running taxi trajectory privatization with ${METHOD} noise and eps = ${EPS}"
@@ -34,8 +34,3 @@ done
 echo "Collecting ECG result statistics..."
 python ExptStats.py ECG Laplace > results/ECGSummary_GP.txt
 python ExptStats.py ECG Gaussian > results/ECGSummary_CGP.txt
-
-python ExptFigs.py
-
-python Synthetic.py
-python SyntheticAdapt.py

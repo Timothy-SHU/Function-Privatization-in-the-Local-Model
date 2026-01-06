@@ -13,7 +13,7 @@ WINDOW_SCALE = float(sys.argv[5])
 TIME_SCALE = 80
 VAL_SCALE = 1000
 UNIT_TIME_SCALE = 43200
-repeat = 10
+repeat = 30
 
 def sqrInt(t, val1, val2):
     ret = 0

@@ -7,7 +7,7 @@ N = 1000
 FREQUENCY = 100
 TIME_SCALE = 80
 UNIT_TIME_SCALE = 43200
-repeat = 10
+repeat = 30
 genCSVs = False
 
 def getStats(filename, isBaseline = False, adaptive = False, smoothed = True):
