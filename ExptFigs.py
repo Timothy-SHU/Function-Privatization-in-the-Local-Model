@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 N = 1000
 FREQUENCY = 100
 TIME_SCALE = 80
+ECG_RECORDS = 100
 UNIT_TIME_SCALE = 43200
 repeat = 30
 SAVE_FIGS = True
@@ -72,6 +73,7 @@ def getTaxiBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
 
 def getECGRes(METHOD, EPS, BATCH_SIZE):
     dir = f"results/ECG/ECG_{EPS}_{BATCH_SIZE*TIME_SCALE//FREQUENCY}x{N//BATCH_SIZE}/"
+    if BATCH_SIZE == -1: dir = f"results/ECG/ECG_{EPS}_unbounded/"
     num_rec = 0; stats_sum = np.zeros(3)
     for i in range(22):
         folder = "{:05d}/".format(i*1000)
@@ -80,6 +82,8 @@ def getECGRes(METHOD, EPS, BATCH_SIZE):
             if os.path.exists(dir+folder+file):
                 num_rec += 1
                 stats_sum += getStats(dir+folder+file, False, False, True)
+            if num_rec == ECG_RECORDS: break
+        if num_rec == ECG_RECORDS: break
     return stats_sum/num_rec
 
 def getECGBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
@@ -92,9 +96,11 @@ def getECGBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
             if os.path.exists(dir+folder+file):
                 num_rec += 1
                 stats_sum += getStats(dir+folder+file, True, False, True)
+            if num_rec == ECG_RECORDS: break
+        if num_rec == ECG_RECORDS: break
     return stats_sum/num_rec
 
-def plotRes(isTaxi, method):
+def plotRes(isTaxi, method, unbounded = False):
     SAMPLE_RATE_LIST = [0.1, 0.2]
     WINDOW_SCALE_LIST = [0.05, 0.1]
     if not isTaxi: SAMPLE_RATE_LIST.append(0.8)
@@ -124,6 +130,7 @@ def plotRes(isTaxi, method):
 
     for EPS in EPS_LIST:
         if isTaxi: res = getTaxiRes(method, EPS)
+        elif unbounded: res = getECGRes(method, EPS, -1)
         else: res = getECGRes(method, EPS, 20)
         for idx in range(3):
             results[idx].append(res[idx])
@@ -142,8 +149,9 @@ def plotRes(isTaxi, method):
     plt.axhline(y = 1, color = 'black', linestyle = '--')
     for idx in range(len(names)):
         if not isTaxi and idx == 0: continue
+        if unbounded and idx == 2: continue
         plt.plot(budgets, results[idx], color = colors[idx], 
-                alpha = 0.9, marker = markers[idx], label = names[idx])
+                 alpha = 0.9, marker = markers[idx], label = names[idx])
     plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')
     plt.xticks(budgets, budgets, minor = False)
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
@@ -152,13 +160,19 @@ def plotRes(isTaxi, method):
     else: plt.ylabel("Error")
     plt.subplots_adjust(left = 0.11, right = 0.98, top = 0.99, bottom = 0.13)
     if SAVE_FIGS:
-        filename = "results/figs/" + ("Taxi" if isTaxi else "ECG")
+        if isTaxi: filename = "results/figs/Taxi"
+        elif not unbounded: filename = "results/figs/ECG"
+        else: filename = "results/figs/ECG_unbounded"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
         if GET_MSE: filename = filename[:-4]+"_MSE.pdf"
         plt.savefig(filename)
     else: plt.show()
 
-plotRes(True, 'Laplace')
-plotRes(True, 'Gaussian')
-plotRes(False, 'Laplace')
-plotRes(False, 'Gaussian')
+for i in range(2):
+    plotRes(True, 'Laplace')
+    plotRes(True, 'Gaussian')
+    plotRes(False, 'Laplace')
+    plotRes(False, 'Gaussian')
+    plotRes(False, 'Laplace', True)
+    plotRes(False, 'Gaussian', True)
+    GET_MSE = True
