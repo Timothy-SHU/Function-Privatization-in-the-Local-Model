@@ -2,7 +2,7 @@ import os, sys, random, tqdm
 from PrivPwcApprox import *
 from AdaptBasis import *
 
-repeat = 10
+repeat = 50
 SAVE_FIGS = True
 GET_MSE = False
 
@@ -48,20 +48,17 @@ FUNC_LIST = [genGaus([(100, 50, 10)]),
 SAMPLE_LIST = [10, 20, 50, 100]
 WINDOW_SCALE = 0.1
 
-# EPS_LIST = [0.01, 0.1, 1.0]
-# RHO_LIST = [1e-6, 1e-4, 0.01]
-
 EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
-RHO_LIST = [1e-8, 4e-8, 2.5e-7, 1e-6, 4e-6, 2.5e-5, 1e-4]
+RHO_LIST = [1e-7, 4e-7, 2.5e-6, 1e-5, 4e-5, 2.5e-4, 0.001]
 
 # EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
-# RHO_LIST = [1e-8, 4e-8, 2.5e-7, 1e-6, 4e-6, 2.5e-5, 1e-4, 4e-4, 2.5e-3, 1e-2]
+# RHO_LIST = [1e-7, 4e-7, 2.5e-6, 1e-5, 4e-5, 2.5e-4, 0.001, 0.004, 0.025, 0.1]
 
 def genRandomFunc(n, SEED = 42):
     global FUNC_LIST
     FUNC_LIST = []; random.seed(SEED)
     for i in range(n):
-        params = []; m = random.randint(1, 10)
+        params = []; m = random.randint(1, 5)
         for j in range(m):
             params.append((random.randint(50, 500), random.randint(0, 100), random.randint(2, 16)))
         # print(params)
@@ -69,7 +66,7 @@ def genRandomFunc(n, SEED = 42):
 
 def plotEg(idx, method, eps = 0.1, plotBaseline = False, SAMPLE = 10):
     func = FUNC_LIST[idx]
-    if method == 'Gaussian': eps = eps*eps/100
+    if method == 'Gaussian': eps = eps*eps/10
     WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
     sample = np.linspace(0, 100, SAMPLE)
     val_priv = func(sample)
@@ -108,9 +105,10 @@ def expt(method):
     results = np.zeros((8, len(EPS_LIST)))
     for idx, EPS in enumerate(EPS_LIST):
         eps = EPS
-        if method == 'Gaussian': eps = eps*eps/100
+        if method == 'Gaussian': eps = eps*eps/10
         filename = f"results/Synth/SynthAdapt_{EPS}_{method}.txt"
         if not os.path.isfile(filename):
+        # if True:
             print(f"Running {'GP' if method == 'Laplace' else 'CGP'} with eps = {EPS}...")
             pbar = tqdm.tqdm(total = len(FUNC_LIST)*repeat*(1+len(SAMPLE_LIST)))
             for func in FUNC_LIST:
@@ -118,7 +116,7 @@ def expt(method):
                 err_ls = []; err_priv = []; err_smooth = []
                 for k in range(repeat):
                     solver, _ = adaptive_basis(func = func, interval = (0, 100), 
-                                            eps = EPS, method = method)
+                                               eps = eps, method = method)
                     if funcL2 == None: funcL2 = np.sqrt(solver.funcSqrInt)
                     err_ls.append(solver.eval('Approx')/funcL2)
                     err_priv.append(solver.eval('Priv')/funcL2)
@@ -140,9 +138,9 @@ def expt(method):
                         val_priv = func(sample)
                         for i in range(SAMPLE):
                             if method == 'Laplace':
-                                val_priv[i] += genNoise(method, SAMPLE/EPS)
+                                val_priv[i] += genNoise(method, SAMPLE/eps)
                             elif method == 'Gaussian':
-                                val_priv[i] += genNoise(method, np.sqrt(SAMPLE/(2*EPS)))
+                                val_priv[i] += genNoise(method, np.sqrt(SAMPLE/(2*eps)))
                         integrand = lambda x: (func(x)-np.interp(x, sample, val_priv))**2
                         err_priv.append(np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2)
                         val_smooth = np.zeros(SAMPLE)
@@ -153,14 +151,12 @@ def expt(method):
                         pbar.update(1)
                     err_priv = np.array(err_priv)
                     err_smooth = np.array(err_smooth)
-                    if min_err_priv == None: min_err_priv = err_priv.mean()
-                    else: min_err_priv = min(min_err_priv, err_priv.mean())
-                    if min_err_smooth == None: min_err_smooth = err_smooth.mean()
-                    else: min_err_smooth = min(min_err_smooth, err_smooth.mean())
-                    if min_err_priv_MSE == None: min_err_priv_MSE = getMSE(err_priv)
-                    else: min_err_priv_MSE = min(min_err_priv_MSE, getMSE(err_priv))
-                    if min_err_smooth_MSE == None: min_err_smooth_MSE = getMSE(err_smooth)
-                    else: min_err_smooth_MSE = min(min_err_smooth_MSE, getMSE(err_smooth))
+                    if min_err_priv == None or err_priv.mean() < min_err_priv:
+                        min_err_priv = err_priv.mean()
+                        min_err_priv_MSE = getMSE(err_priv)
+                    if min_err_smooth == None or err_smooth.mean() < min_err_smooth:
+                        min_err_smooth = err_smooth.mean()
+                        min_err_smooth_MSE = getMSE(err_smooth)
                 results[2, idx] += min_err_priv/len(FUNC_LIST)
                 results[3, idx] += min_err_smooth/len(FUNC_LIST)
                 results[6, idx] += min_err_priv_MSE/len(FUNC_LIST)
@@ -228,8 +224,8 @@ def expt(method):
         plt.savefig(filename)
     else: plt.show()
 
-genRandomFunc(30)
+genRandomFunc(20)
 # for i in [1, 3, 5, 7, 9]:
 #     plotEg(i, 'Gaussian', eps = 1.0, plotBaseline = True, SAMPLE = 20)
-expt('Laplace')
 expt('Gaussian')
+expt('Laplace')

@@ -49,16 +49,11 @@ DEGREE_LIST = [1, 4, 8, 16]
 SAMPLE_LIST = [10, 20, 50, 100]
 WINDOW_SCALE = 0.1
 
-# EPS_LIST = [0.001, 0.01, 0.1, 1.0]
-# RHO_LIST = [5e-7, 5e-5, 5e-3, 0.5]
-
-EPS_LIST = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
-RHO_LIST = [1e-5, 4e-5, 2.5e-4, 0.001, 0.004, 0.025, 0.1]
-# RHO_LIST = [5e-5, 2e-4, 1.25e-3, 5e-3, 2e-2, 0.125, 0.5]
+EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
+RHO_LIST = [1e-7, 4e-7, 2.5e-6, 1e-5, 4e-5, 2.5e-4, 0.001]
 
 # EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
 # RHO_LIST = [1e-7, 4e-7, 2.5e-6, 1e-5, 4e-5, 2.5e-4, 0.001, 0.004, 0.025, 0.1]
-# RHO_LIST = [5e-7, 2e-6, 1.25e-5, 5e-5, 2e-4, 1.25e-3, 5e-3, 2e-2, 0.125, 0.5]
 
 def genRandomFunc(n, SEED = 42):
     global FUNC_LIST
@@ -151,7 +146,7 @@ def expt(method):
                     for k in range(repeat):
                         solver, B = adaptive_approx(func = func, interval = (0, 100), 
                                                     basis = 'Polynomial', degree = DEGREE, 
-                                                    eps = EPS, method = method)
+                                                    eps = eps, method = method)
                         if funcL2 == None: funcL2 = np.sqrt(solver.funcSqrInt)
                         solver.privatize(eps = B, method = method)
                         err_ls.append(solver.eval('Approx')/funcL2)
@@ -180,9 +175,9 @@ def expt(method):
                         val_priv = func(sample)
                         for i in range(SAMPLE):
                             if method == 'Laplace':
-                                val_priv[i] += genNoise(method, SAMPLE/EPS)
+                                val_priv[i] += genNoise(method, SAMPLE/eps)
                             elif method == 'Gaussian':
-                                val_priv[i] += genNoise(method, np.sqrt(SAMPLE/(2*EPS)))
+                                val_priv[i] += genNoise(method, np.sqrt(SAMPLE/(2*eps)))
                         integrand = lambda x: (func(x)-np.interp(x, sample, val_priv))**2
                         err_priv.append(np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])/funcL2)
                         val_smooth = np.zeros(SAMPLE)
@@ -289,5 +284,5 @@ def expt(method):
 genRandomFunc(20)
 # for i in range(len(FUNC_LIST)):
 #     plotEg(i, 'Gaussian', eps = 0.1, plotBaseline = True, SAMPLE = 20)
-expt('Laplace')
 expt('Gaussian')
+expt('Laplace')

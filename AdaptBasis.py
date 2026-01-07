@@ -6,8 +6,9 @@ logging.basicConfig(filename = 'info.log', filemode = 'w', level = logging.INFO)
 
 def adaptive_basis(func, interval, basis = 'Polynomial', eps = 0.1, method = 'Laplace', 
                    enable_filtering = True, STEP_SIZE = 1, MAX_DEGREE = 32):
+    logging.info("="*100)
     # SVT for basis degree, uses 1/8 budget
-    k0 = 0; solver = None
+    k0 = 1; solver = None
     if method == 'Laplace': eps0 = eps/8
     elif method == 'Gaussian': eps0 = np.sqrt(eps/4)
     w = laplace.rvs(scale = 3/eps0)
@@ -16,11 +17,8 @@ def adaptive_basis(func, interval, basis = 'Polynomial', eps = 0.1, method = 'La
         solver.fit(func)
         if k0 >= MAX_DEGREE: break
         v = laplace.rvs(scale = 3/eps0)
-        # if method == 'Laplace': tau = k0/eps0
-        # elif method == 'Gaussian': tau = np.sqrt(k0)/eps0
-        if enable_filtering: tau = 1/eps0
-        elif method == 'Laplace': tau = k0/(3*eps/4)
-        elif method == 'Gaussian': tau = np.sqrt(k0)/np.sqrt(3*eps/2)
+        if method == 'Laplace': tau = k0/(eps/4)
+        elif method == 'Gaussian': tau = np.sqrt(k0/(eps/2))
         err = solver.eval('Approx')
         logging.info(f"SVT: k0 = {k0}, tau = {tau}, err = {err:.8f}, w = {w:.5f}, v = {v:.5f}; Terminate? {tau-err+v >= w}.")
         if tau-err+v >= w: break
@@ -28,17 +26,14 @@ def adaptive_basis(func, interval, basis = 'Polynomial', eps = 0.1, method = 'La
     logging.info(f"Final k0 = {k0}.")
     logging.info("-"*100)
 
-    if enable_filtering:
-        # Privatize with 1/8 budget
-        solver.privatize(eps/8, method)
-        cmax = np.abs(solver.coeff+solver.noise).max()
+    if k0 > 1 and enable_filtering:
+        # Privatize with 1/4 budget
+        solver.privatize(eps/4, method)
         c_list = sorted(np.abs(solver.coeff+solver.noise).ravel().tolist(), reverse = True)
 
         # SVT for basis selection, uses 1/8 budget
         k1 = 0; deg_list = None
-        if method == 'Laplace': eps1 = eps/8
-        elif method == 'Gaussian': eps1 = np.sqrt(eps/4)
-        w = laplace.rvs(scale = 3/eps1)
+        w = laplace.rvs(scale = 3/eps0)
         original_noise = solver.noise.copy()
         while True:
             deg_list = []
@@ -48,9 +43,9 @@ def adaptive_basis(func, interval, basis = 'Polynomial', eps = 0.1, method = 'La
                 if np.abs(solver.coeff[0, i]+solver.noise[0, i]) >= c_list[k1]: deg_list.append(i)
                 else: solver.noise[0, i] = -solver.coeff[0, i]
             if len(deg_list) == k0+1: break
-            v = laplace.rvs(scale = 3/eps1)
-            if method == 'Laplace': tau = len(deg_list)/eps0
-            elif method == 'Gaussian': tau = np.sqrt(len(deg_list))/eps0
+            v = laplace.rvs(scale = 3/eps0)
+            if method == 'Laplace': tau = len(deg_list)/(eps/4)
+            elif method == 'Gaussian': tau = np.sqrt(len(deg_list)/(eps/2))
             err = solver.eval('Priv')
             solver.noise = original_noise.copy()
             # logging.info(f"SVT: k1 = {k1} ({cmax/(2**k1)}), tau = {tau}, err = {err:.8f}, w = {w:.5f}, v = {v:.5f}; Terminate? {tau-err+v >= w}.")
@@ -61,11 +56,11 @@ def adaptive_basis(func, interval, basis = 'Polynomial', eps = 0.1, method = 'La
         logging.info("-"*100)
     else: deg_list = list(range(k0+1))
 
-    # Final privatization with 5/8 budget
-    logging.info(f"Final degree list: {deg_list}, remaining eps = {5*eps/8:.8f}")
+    # Final privatization with 1/2 budget
+    logging.info(f"Final degree list: {deg_list}, remaining eps = {eps/2:.8f}.\n")
     solver = PrivatePiecewiseApprox(interval, list(interval), basis, deg_list)
     solver.fit(func)
-    if enable_filtering: solver.privatize(5*eps/8, method)
+    if enable_filtering: solver.privatize(eps/2, method)
     else: solver.privatize(7*eps/8, method)
 
     return solver, deg_list
