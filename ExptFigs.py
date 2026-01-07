@@ -97,6 +97,7 @@ def getECGBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
 def plotRes(isTaxi, method):
     SAMPLE_RATE_LIST = [0.1, 0.2]
     WINDOW_SCALE_LIST = [0.05, 0.1]
+    if not isTaxi: SAMPLE_RATE_LIST.append(0.8)
 
     names = []; results = []; colors = []; markers = []
     names.append("LS Approximation"); results.append([])
