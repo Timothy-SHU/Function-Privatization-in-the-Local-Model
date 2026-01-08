@@ -11,11 +11,11 @@ repeat = 30
 SAVE_FIGS = True
 GET_MSE = False
 
-plt.rc('axes', titlesize = 11)
-plt.rc('axes', labelsize = 11)
-plt.rc('xtick', labelsize = 10)
-plt.rc('ytick', labelsize = 10)
-plt.rc('legend', fontsize = 9)
+plt.rc('axes', titlesize = 13)
+plt.rc('axes', labelsize = 13)
+plt.rc('xtick', labelsize = 11)
+plt.rc('ytick', labelsize = 11)
+plt.rc('legend', fontsize = 13)
 
 def getStats(filename, isBaseline, adaptive, smoothed):
     file = open(filename, 'r')
@@ -101,6 +101,7 @@ def getECGBLRes(METHOD, EPS, SAMPLE_RATE, WINDOW_SCALE):
     return stats_sum/num_rec
 
 def plotRes(isTaxi, method, unbounded = False):
+    plt.rc('xtick', labelsize = 8 if isTaxi and method == 'Gaussian' else 11)
     SAMPLE_RATE_LIST = [0.1, 0.2]
     WINDOW_SCALE_LIST = [0.05, 0.1]
     if not isTaxi: SAMPLE_RATE_LIST.append(0.8)
@@ -120,6 +121,8 @@ def plotRes(isTaxi, method, unbounded = False):
     if isTaxi:
         names[1] = "PrivFuncSeg"
         names[2] = "PrivFuncSeg (continuous)"
+    elif unbounded:
+        names[1] = "Project-and-Privatize"
 
     if isTaxi:
         EPS_LIST = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
@@ -145,7 +148,7 @@ def plotRes(isTaxi, method, unbounded = False):
                 else: results[4][-1] = min(results[4][-1], res[1])
 
     budgets = EPS_LIST if method == 'Laplace' else RHO_LIST
-    plt.figure(figsize = (6, 4))
+    plt.figure(figsize = (5, 5 if isTaxi else 4))
     plt.axhline(y = 1, color = 'black', linestyle = '--')
     for idx in range(len(names)):
         if not isTaxi and idx == 0: continue
@@ -154,12 +157,22 @@ def plotRes(isTaxi, method, unbounded = False):
                  alpha = 0.9, marker = markers[idx], label = names[idx])
     plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')
     plt.xticks(budgets, budgets, minor = False)
-    if isTaxi and method == 'Laplace' and GET_MSE: plt.margins(y = 0.2)
+    # if GET_MSE: plt.ylabel("Error MSE")
+    # else: plt.ylabel("Error")
+    
+    if isTaxi:
+        if method == 'Laplace':
+            if GET_MSE: plt.ylim(3e-8, 2e6)
+            else: plt.ylim(5e-3, 300)
+        else:
+            if GET_MSE: plt.ylim(5e-7, 2e4)
+            else: plt.ylim(2e-3, 110) 
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
-    if GET_MSE: plt.ylabel("Error MSE")
-    else: plt.ylabel("Error")
-    plt.subplots_adjust(left = 0.11, right = 0.98, top = 0.99, bottom = 0.13)
+    plt.subplots_adjust(left = 0.09, right = 0.99, top = 0.99, bottom = 0.1)
+    if isTaxi and method == 'Gaussian': plt.subplots_adjust(bottom = 0.09)
+    if not isTaxi: plt.subplots_adjust(bottom = 0.12)
+
     if SAVE_FIGS:
         if isTaxi: filename = "results/figs/Taxi"
         elif not unbounded: filename = "results/figs/ECG"
@@ -172,8 +185,8 @@ def plotRes(isTaxi, method, unbounded = False):
 for i in range(2):
     plotRes(True, 'Laplace')
     plotRes(True, 'Gaussian')
-    plotRes(False, 'Laplace')
-    plotRes(False, 'Gaussian')
+    # plotRes(False, 'Laplace')
+    # plotRes(False, 'Gaussian')
     plotRes(False, 'Laplace', True)
     plotRes(False, 'Gaussian', True)
     GET_MSE = True

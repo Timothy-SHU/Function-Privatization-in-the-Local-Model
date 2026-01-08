@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 EPS = 1.0
 METHOD = 'Laplace'
-BATCH_SIZE = 20
+BATCH_SIZE = -1
 TIME_SCALE = 80
 VAL_SCALE = 1000
 repeat = 30
@@ -17,7 +17,7 @@ plt.rc('axes', titlesize = 11)
 plt.rc('axes', labelsize = 11)
 plt.rc('xtick', labelsize = 10)
 plt.rc('ytick', labelsize = 9)
-plt.rc('legend', fontsize = 10)
+plt.rc('legend', fontsize = 11)
 
 def genNoise(method, scale, dim = 1):
     if method == 'Laplace':
@@ -66,7 +66,7 @@ if len(sys.argv) == 1:
     if str in ["N", "n"]: METHOD = 'Gaussian'
     str = input("Privacy budget (in eps) per record [default 1.0]:\t")
     if str != "": EPS = float(str)
-    str = input("Batch size (default 20, input -1 for unbounded basis):\t")
+    str = input("Batch size (default unbounded):\t")
     if str != "": BATCH_SIZE = int(str)
     unbounded = (BATCH_SIZE == -1)
     parallel = unbounded
@@ -113,15 +113,15 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         print(f"Privatized in {time.time()-iter_timer:.2f} sec (incl preproc).")
 
         dense_t = np.linspace(t[0], T, 10*n+1)
-        if unbounded: _, axs = plt.subplots(2, 1, figsize = (10, 4), sharex = True)
+        if unbounded: _, axs = plt.subplots(2, 1, figsize = (10, 5), sharex = True)
         else: _, axs = plt.subplots(3, 1, figsize = (10, 6), sharex = True)
         plt.subplot(2 if unbounded else 3, 1, 1)
-        plt.plot(t/TIME_SCALE, val, color = 'black', label = "ECG Curve")
+        plt.plot(t/TIME_SCALE, val, color = 'black', label = "True")
         for k in range(len(solver.breakpoints)-1):
             l = solver.breakpoints[k]; r = solver.breakpoints[k+1]
             dense_t_pwc = np.linspace(l, r, INTLIM_PER_PIECE)[:-1]
-            plt.plot(dense_t_pwc/TIME_SCALE, priv(dense_t_pwc), color = 'tab:blue', 
-                     alpha = 0.9, label = "Privatization" if k == 0 else None)
+            plt.plot(dense_t_pwc/TIME_SCALE, priv(dense_t_pwc), color = 'tab:blue', alpha = 0.9, 
+                     label = ("Project-and-Privatize" if unbounded else "Privatization") if k == 0 else None)
         plt.xlim(-0.1, 10.1)
         plt.ylabel(r"amplitude ($\mu$V)")
         plt.legend(loc = 'upper left', ncol = 2)
@@ -142,7 +142,7 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
 
         if not unbounded:
             plt.subplot(3, 1, 2)
-            plt.plot(t/TIME_SCALE, val, color = 'black', label = "ECG Curve")
+            plt.plot(t/TIME_SCALE, val, color = 'black', label = "True")
             plt.plot(dense_t/TIME_SCALE, smooth(dense_t), color = 'tab:orange', 
                      alpha = 0.9, label = "Privatization (continuous)")
             plt.ylabel(r"amplitude ($\mu$V)")
@@ -162,14 +162,14 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         for l in range(SAMPLE):
             val_smooth[l] = np.mean(val_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
         plt.subplot(2 if unbounded else 3, 1, 2 if unbounded else 3)
-        plt.plot(t/TIME_SCALE, val, color = 'black', label = "ECG Curve")
+        plt.plot(t/TIME_SCALE, val, color = 'black', label = "True")
         plt.plot(t[sample]/TIME_SCALE, val_priv, color = 'tab:green', 
                  alpha = 0.9, label = "Baseline")
         plt.plot(t[sample]/TIME_SCALE, val_smooth, color = 'tab:purple', 
                  alpha = 0.9, label = "Baseline (smoothed)")
         plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)")
         plt.legend(loc = 'upper left', ncol = 3)
-        plt.subplots_adjust(left = 0.07, right = 0.99, top = 0.99, bottom = 0.08, 
+        plt.subplots_adjust(left = 0.07, right = 0.99, top = 0.99, bottom = 0.12, 
                             wspace = 0.1, hspace = 0.08)
         if SAVE_FIGS:
             if unbounded: filename = "results/figs/ECG_unbounded_eg_"

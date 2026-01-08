@@ -16,8 +16,8 @@ SAVE_FIGS = True
 plt.rc('axes', titlesize = 11)
 plt.rc('axes', labelsize = 11)
 plt.rc('xtick', labelsize = 9)
-plt.rc('ytick', labelsize = 9)
-plt.rc('legend', fontsize = 10)
+plt.rc('ytick', labelsize = 10)
+plt.rc('legend', fontsize = 11)
 
 if len(sys.argv) > 1:
     METHOD = str(sys.argv[1])
@@ -102,7 +102,7 @@ for i in range(len(df)):
 
             _, axs = plt.subplots(1, 2, figsize = (8, 5), sharex = True, sharey = True)
             plt.subplot(1, 2, 1)
-            plt.plot(x+min_x, y+min_y, color = 'black', label = "Trajectory")
+            plt.plot(x+min_x, y+min_y, color = 'black', label = "True")
             approx_all = [[], []]; priv_all = [[], []]
             for k in range(len(solver.breakpoints)-1):
                 l = solver.breakpoints[k]; r = solver.breakpoints[k+1]
@@ -138,7 +138,7 @@ for i in range(len(df)):
             plt.legend(loc = 'upper left')
 
             plt.subplot(1, 2, 2)
-            plt.plot(x+min_x, y+min_y, color = 'black', label = "Trajectory")
+            plt.plot(x+min_x, y+min_y, color = 'black', label = "True")
             SAMPLE = max(int(len(t)*0.1), 2)
             WINDOW = max(int(SAMPLE*0.05/2), 1)
             sample = np.linspace(0, len(t)-1, SAMPLE, dtype = int)
@@ -162,7 +162,7 @@ for i in range(len(df)):
                      alpha = 0.9, label = "Baseline\n(smoothed)")
             # plt.tick_params(labelleft = True)
             plt.legend(loc = 'upper left')
-            plt.subplots_adjust(left = 0.06, right = 0.975, top = 0.95, bottom = 0.11, 
+            plt.subplots_adjust(left = 0.07, right = 0.975, top = 0.95, bottom = 0.11, 
                                 wspace = 0.07, hspace = 0.2)
             if SAVE_FIGS:
                 filename = "results/figs/Taxi_eg_"

@@ -6,11 +6,11 @@ repeat = 50
 SAVE_FIGS = True
 GET_MSE = False
 
-plt.rc('axes', titlesize = 12)
-plt.rc('axes', labelsize = 12)
+plt.rc('axes', titlesize = 13)
+plt.rc('axes', labelsize = 13)
 plt.rc('xtick', labelsize = 11)
 plt.rc('ytick', labelsize = 11)
-plt.rc('legend', fontsize = 11)
+plt.rc('legend', fontsize = 13)
 
 def getMSE(arr):
     avg = arr.mean()
@@ -187,7 +187,7 @@ def expt(method):
     names.append("Baseline (smoothed)"); colors.append('tab:purple'); markers.append('d')
 
     budgets = EPS_LIST if method == 'Laplace' else RHO_LIST
-    plt.figure(figsize = (6, 4))
+    plt.figure(figsize = (5, 4))
     plt.axhline(y = 1, color = 'black', linestyle = '--')
     for idx in range(1, len(names)):
         plt.plot(budgets, results[idx, :].tolist(), color = colors[idx], 
@@ -196,10 +196,9 @@ def expt(method):
     plt.xticks(budgets, budgets, minor = False)
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
-    plt.ylabel("Error MSE" if GET_MSE else "Error")
-    plt.subplots_adjust(left = 0.1, right = 0.99, top = 0.99, bottom = 0.12)
-    if method == 'Gaussian': plt.subplots_adjust(left = 0.1)
-    if GET_MSE: plt.subplots_adjust(left = 0.115)
+    # plt.ylabel("Error MSE" if GET_MSE else "Error")
+    plt.subplots_adjust(left = 0.075, right = 0.99, top = 0.99, bottom = 0.12)
+    if GET_MSE: plt.subplots_adjust(left = 0.09)
     if SAVE_FIGS:
         filename = "results/figs/SynthAdapt"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
@@ -230,6 +229,6 @@ genRandomFunc(20)
 # for i in [1, 3, 5, 7, 9]:
 #     plotEg(i, 'Gaussian', eps = 1.0, plotBaseline = True, SAMPLE = 20)
 for i in range(2):
-    expt('Gaussian')
     expt('Laplace')
+    expt('Gaussian')
     GET_MSE = True
