@@ -113,9 +113,9 @@ def plotRes(isTaxi, method, unbounded = False):
     names.append("Privatization (continuous)"); results.append([])
     colors.append('tab:orange'); markers.append('o')
     names.append("Baseline"); results.append([])
-    colors.append('tab:purple'); markers.append('s')
+    colors.append('tab:green'); markers.append('s')
     names.append("Baseline (smoothed)"); results.append([])
-    colors.append('tab:green'); markers.append('d')
+    colors.append('tab:purple'); markers.append('d')
 
     if isTaxi:
         names[1] = "PrivFuncSeg"
