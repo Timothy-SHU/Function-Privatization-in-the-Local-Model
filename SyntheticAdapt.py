@@ -197,8 +197,9 @@ def expt(method):
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
     plt.ylabel("Error MSE" if GET_MSE else "Error")
-    plt.subplots_adjust(left = 0.11, right = 0.98, top = 0.99, bottom = 0.14)
-    if method == 'Gaussian': plt.subplots_adjust(left = 0.12)
+    plt.subplots_adjust(left = 0.1, right = 0.99, top = 0.99, bottom = 0.12)
+    if method == 'Gaussian': plt.subplots_adjust(left = 0.1)
+    if GET_MSE: plt.subplots_adjust(left = 0.115)
     if SAVE_FIGS:
         filename = "results/figs/SynthAdapt"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
@@ -215,8 +216,9 @@ def expt(method):
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
     plt.ylabel("Error MSE" if GET_MSE else "Error")
-    plt.subplots_adjust(left = 0.11, right = 0.98, top = 0.99, bottom = 0.14)
-    if method == 'Gaussian': plt.subplots_adjust(left = 0.12)
+    plt.subplots_adjust(left = 0.1, right = 0.99, top = 0.99, bottom = 0.12)
+    if method == 'Gaussian': plt.subplots_adjust(left = 0.1)
+    if GET_MSE: plt.subplots_adjust(left = 0.115)
     if SAVE_FIGS:
         filename = "results/figs/SynthAdapt_with_approx"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
@@ -227,5 +229,7 @@ def expt(method):
 genRandomFunc(20)
 # for i in [1, 3, 5, 7, 9]:
 #     plotEg(i, 'Gaussian', eps = 1.0, plotBaseline = True, SAMPLE = 20)
-expt('Gaussian')
-expt('Laplace')
+for i in range(2):
+    expt('Gaussian')
+    expt('Laplace')
+    GET_MSE = True

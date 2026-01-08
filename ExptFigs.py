@@ -154,6 +154,7 @@ def plotRes(isTaxi, method, unbounded = False):
                  alpha = 0.9, marker = markers[idx], label = names[idx])
     plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')
     plt.xticks(budgets, budgets, minor = False)
+    if isTaxi and method == 'Laplace' and GET_MSE: plt.margins(y = 0.2)
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
     if GET_MSE: plt.ylabel("Error MSE")
