@@ -13,8 +13,9 @@ plt.rc('ytick', labelsize = 9)
 plt.rc('legend', fontsize = 10)
 
 def getMSE(arr):
-    avg = arr.mean()
-    return ((arr-avg)**2).mean()
+    return (arr**2).mean()
+    # avg = arr.mean()
+    # return ((arr-avg)**2).mean()
 
 def genNoise(method, scale):
     if method == 'Laplace':
@@ -246,6 +247,7 @@ def expt(method):
             if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
             elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
         if i%2 == 0: plt.ylabel("Error MSE" if GET_MSE else "Error")
+        plt.margins(y = 0.1)
     plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.97, bottom = 0.06, 
                         wspace = 0.04, hspace = 0.16)
     if SAVE_FIGS:
@@ -284,5 +286,7 @@ def expt(method):
 genRandomFunc(20)
 # for i in range(len(FUNC_LIST)):
 #     plotEg(i, 'Gaussian', eps = 0.1, plotBaseline = True, SAMPLE = 20)
-expt('Gaussian')
-expt('Laplace')
+for i in range(2):
+    expt('Laplace')
+    expt('Gaussian')
+    GET_MSE = True

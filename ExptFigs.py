@@ -43,7 +43,8 @@ def getStats(filename, isBaseline, adaptive, smoothed):
     res = np.array(res)
     avg = res.mean(axis = 0)
     if GET_MSE:
-        avg = ((res-avg)**2).mean(axis = 0)
+        avg = (res**2).mean(axis = 0)
+        # avg = ((res-avg)**2).mean(axis = 0)
     if isBaseline or adaptive: return avg.tolist()
     return [err_ls] + avg.tolist()
 
@@ -160,13 +161,21 @@ def plotRes(isTaxi, method, unbounded = False):
     # if GET_MSE: plt.ylabel("Error MSE")
     # else: plt.ylabel("Error")
     
+    # if isTaxi:
+    #     if method == 'Laplace':
+    #         if GET_MSE: plt.ylim(3e-8, 2e6)
+    #         else: plt.ylim(5e-3, 300)
+    #     else:
+    #         if GET_MSE: plt.ylim(5e-7, 2e4)
+    #         else: plt.ylim(2e-3, 110) 
     if isTaxi:
         if method == 'Laplace':
-            if GET_MSE: plt.ylim(3e-8, 2e6)
+            if GET_MSE: plt.ylim(5e-5, 2e8)
             else: plt.ylim(5e-3, 300)
         else:
-            if GET_MSE: plt.ylim(5e-7, 2e4)
-            else: plt.ylim(2e-3, 110) 
+            if GET_MSE: plt.ylim(2e-5, 2e7)
+            else: plt.ylim(2e-3, 120) 
+    else: plt.margins(y = 0.1)
     if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
     elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
     plt.subplots_adjust(left = 0.09, right = 0.99, top = 0.99, bottom = 0.1)
@@ -185,8 +194,8 @@ def plotRes(isTaxi, method, unbounded = False):
 for i in range(2):
     plotRes(True, 'Laplace')
     plotRes(True, 'Gaussian')
-    # plotRes(False, 'Laplace')
-    # plotRes(False, 'Gaussian')
+    plotRes(False, 'Laplace')
+    plotRes(False, 'Gaussian')
     plotRes(False, 'Laplace', True)
     plotRes(False, 'Gaussian', True)
     GET_MSE = True
