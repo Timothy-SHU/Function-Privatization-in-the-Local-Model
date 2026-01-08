@@ -69,8 +69,7 @@ if len(sys.argv) == 1:
     str = input("Batch size (default 20, input -1 for unbounded basis):\t")
     if str != "": BATCH_SIZE = int(str)
     unbounded = (BATCH_SIZE == -1)
-    parallel = input("Enable multiprocessing? (y/N)\t")
-    parallel = parallel in ["Y", "y"]
+    parallel = unbounded
 
 timer = time.time()
 for folder, file, record in tqdm(records, position = 0, leave = True):
@@ -114,14 +113,9 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         print(f"Privatized in {time.time()-iter_timer:.2f} sec (incl preproc).")
 
         dense_t = np.linspace(t[0], T, 10*n+1)
-        _, axs = plt.subplots(3, 1, figsize = (10, 6), sharex = True)
-        # plt.subplot(4, 1, 1)
-        # plt.plot(t/TIME_SCALE, val, color = 'black', label = "ECG Curve")
-        # plt.plot(dense_t/TIME_SCALE, approx(dense_t), color = 'tab:brown', 
-        #          alpha = 0.9, label = "LS Approximation")
-        # plt.xlabel("time (s)"); plt.ylabel(r"amplitude ($\mu$V)")
-        # plt.legend(loc = 'upper left')
-        plt.subplot(3, 1, 1)
+        if unbounded: _, axs = plt.subplots(2, 1, figsize = (10, 4), sharex = True)
+        else: _, axs = plt.subplots(3, 1, figsize = (10, 6), sharex = True)
+        plt.subplot(2 if unbounded else 3, 1, 1)
         plt.plot(t/TIME_SCALE, val, color = 'black', label = "ECG Curve")
         for k in range(len(solver.breakpoints)-1):
             l = solver.breakpoints[k]; r = solver.breakpoints[k+1]
@@ -146,12 +140,13 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         print(f"||f-f_smoothed|| = {err_smooth:.5f}.")
         print("="*80)
 
-        plt.subplot(3, 1, 2)
-        plt.plot(t/TIME_SCALE, val, color = 'black', label = "ECG Curve")
-        plt.plot(dense_t/TIME_SCALE, smooth(dense_t), color = 'tab:orange', 
-                 alpha = 0.9, label = "Privatization (continuous)")
-        plt.ylabel(r"amplitude ($\mu$V)")
-        plt.legend(loc = 'upper left', ncol = 2)
+        if not unbounded:
+            plt.subplot(3, 1, 2)
+            plt.plot(t/TIME_SCALE, val, color = 'black', label = "ECG Curve")
+            plt.plot(dense_t/TIME_SCALE, smooth(dense_t), color = 'tab:orange', 
+                     alpha = 0.9, label = "Privatization (continuous)")
+            plt.ylabel(r"amplitude ($\mu$V)")
+            plt.legend(loc = 'upper left', ncol = 2)
 
         SAMPLE = int(len(t)*0.1)
         WINDOW = max(1, int(SAMPLE*0.05/2))
@@ -166,7 +161,7 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         val_smooth = np.zeros(SAMPLE)
         for l in range(SAMPLE):
             val_smooth[l] = np.mean(val_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
-        plt.subplot(3, 1, 3)
+        plt.subplot(2 if unbounded else 3, 1, 2 if unbounded else 3)
         plt.plot(t/TIME_SCALE, val, color = 'black', label = "ECG Curve")
         plt.plot(t[sample]/TIME_SCALE, val_priv, color = 'tab:green', 
                  alpha = 0.9, label = "Baseline")
@@ -177,7 +172,8 @@ for folder, file, record in tqdm(records, position = 0, leave = True):
         plt.subplots_adjust(left = 0.07, right = 0.99, top = 0.99, bottom = 0.08, 
                             wspace = 0.1, hspace = 0.08)
         if SAVE_FIGS:
-            filename = "results/figs/ECG_eg_"
+            if unbounded: filename = "results/figs/ECG_unbounded_eg_"
+            else: filename = "results/figs/ECG_eg_"
             filename += "GP_eps" if METHOD == 'Laplace' else "CGP_rho"
             filename += f"={eps}.pdf"
             plt.savefig(filename)
