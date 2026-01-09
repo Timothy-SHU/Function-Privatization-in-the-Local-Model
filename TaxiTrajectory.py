@@ -100,7 +100,7 @@ for i in range(len(df)):
             priv = solver.createPriv(); priv_res = priv(t)
             priv_t_x = priv_res[:, 0]; priv_t_y = priv_res[:, 1]
 
-            _, axs = plt.subplots(1, 2, figsize = (8, 5), sharex = True, sharey = True)
+            _, axs = plt.subplots(1, 2, figsize = (8, 4), sharex = True, sharey = True)
             plt.subplot(1, 2, 1)
             plt.plot(x+min_x, y+min_y, color = 'black', label = "True")
             approx_all = [[], []]; priv_all = [[], []]
