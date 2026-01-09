@@ -65,41 +65,59 @@ def genRandomFunc(n, SEED = 42):
         # print(params)
         FUNC_LIST.append(genGaus(params))
 
-def plotEg(idx, method, eps = 0.1, plotBaseline = False, SAMPLE = 10):
+def plotEg(idx, method, eps = 0.1, SAMPLE = 10):
     func = FUNC_LIST[idx]
     if method == 'Gaussian': eps = eps*eps/10
-    WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
-    sample = np.linspace(0, 100, SAMPLE)
-    val_priv = func(sample)
-    for i in range(SAMPLE):
-        if method == 'Laplace':
-            val_priv[i] += genNoise(method, SAMPLE/eps)
-        elif method == 'Gaussian':
-            val_priv[i] += genNoise(method, np.sqrt(SAMPLE/(2*eps)))
-    val_smooth = np.zeros(SAMPLE)
-    for l in range(SAMPLE):
-        val_smooth[l] = np.mean(val_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
 
-    plt.figure(figsize = (8, 6))
-    solver, deg = adaptive_basis(func = func, interval = (0, 100), 
-                                 eps = eps, method = method)
+    plt.figure(figsize = (9, 4))
+    while True:
+        solver, deg = adaptive_basis(func = func, interval = (0, 100), 
+                                     eps = eps, method = method)
+        if len(deg) >= 7 and len(deg) <= 10: break
+    print(deg)
     print(f"||f|| = {np.sqrt(solver.funcSqrInt):.5f};")
     print(f"||f-f_approx|| = {solver.eval('Approx'):.5f};")
     print(f"||f_approx-f_priv|| = {solver.evalPrivLoss():.5f};")
     print(f"||f-f_priv|| = {solver.eval('Priv'):.5f};")
-    integrand = lambda x: (func(x)-np.interp(x, sample, val_priv))**2
-    print(f"||f-f_bl|| = {np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0]):.5f};")
-    integrand = lambda x: (func(x)-np.interp(x, sample, val_smooth))**2
-    print(f"||f-f_bl_sm|| = {np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0]):.5f}.\n")
-
+    plt.subplot(1, 2, 1)
     x_dense = np.linspace(0, 100, INTLIM)
-    plt.plot(x_dense, func(x_dense), color = 'black', label = "Function")
-    if plotBaseline:
-        plt.plot(sample, val_priv, color = 'tab:green', alpha = 0.9, label = "Baseline")
-        plt.plot(sample, val_smooth, color = 'tab:purple', alpha = 0.9, label = "Baseline (smoothed)")
-    plt.plot(x_dense, solver.createApprox()(x_dense), color = 'tab:brown', alpha = 0.9, label = "LS Approximation")
+    plt.plot(x_dense, func(x_dense), color = 'black', label = "True")
+    # plt.plot(x_dense, solver.createApprox()(x_dense), color = 'tab:brown', alpha = 0.9, label = "LS Approximation")
     plt.plot(x_dense, solver.createPriv()(x_dense), color = 'tab:blue', alpha = 0.9, label = "PrivFuncSelect")
-    plt.title(f"Monomial Basis with Degrees: {deg}"); plt.legend(loc = 'upper left')
+    plt.legend(loc = 'upper left')
+
+    WINDOW = max(1, int(SAMPLE*WINDOW_SCALE/2))
+    sample = np.linspace(0, 100, SAMPLE)
+    while True:
+        val_priv = func(sample)
+        for i in range(SAMPLE):
+            if method == 'Laplace':
+                val_priv[i] += genNoise(method, SAMPLE/eps)
+            elif method == 'Gaussian':
+                val_priv[i] += genNoise(method, np.sqrt(SAMPLE/(2*eps)))
+        val_smooth = np.zeros(SAMPLE)
+        for l in range(SAMPLE):
+            val_smooth[l] = np.mean(val_priv[max(0, l-WINDOW) : min(l+WINDOW+1, len(sample))])
+        integrand = lambda x: (func(x)-np.interp(x, sample, val_priv))**2
+        err_bl = np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])
+        integrand = lambda x: (func(x)-np.interp(x, sample, val_smooth))**2
+        err_bl_sm = np.sqrt(quad(integrand, 0, 100, limit = INTLIM)[0])
+        if err_bl <= 600 and err_bl_sm <= 600:
+            print(f"||f-f_bl|| = {err_bl:.5f};")
+            print(f"||f-f_bl_sm|| = {err_bl_sm:.5f}.\n")
+            break
+    plt.subplot(1, 2, 2)
+    plt.plot(x_dense, func(x_dense), color = 'black', label = "True")
+    plt.plot(sample, val_priv, color = 'tab:green', alpha = 0.9, label = "Baseline")
+    plt.plot(sample, val_smooth, color = 'tab:purple', alpha = 0.9, label = "Baseline (smoothed)")
+    plt.legend(loc = 'upper left')
+    plt.subplots_adjust(left = 0.045, right = 0.99, top = 0.99, bottom = 0.06, 
+                        wspace = 0.14, hspace = 0.2)
+    if SAVE_FIGS:
+        filename = "results/figs/SynthAdapt_eg_"
+        filename += "GP_eps" if method == 'Laplace' else "CGP_rho"
+        filename += f"={eps}.pdf"
+        plt.savefig(filename)
     plt.show()
 
 def expt(method):
@@ -207,29 +225,28 @@ def expt(method):
         if GET_MSE: filename = filename[:-4]+"_MSE.pdf"
         plt.savefig(filename)
 
-    plt.figure(figsize = (6, 4))
-    plt.axhline(y = 1, color = 'black', linestyle = '--')
-    for idx in range(len(names)):
-        plt.plot(budgets, results[idx, :].tolist(), color = colors[idx], 
-                 alpha = 0.9, marker = markers[idx], label = names[idx])
-    plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')
-    plt.xticks(budgets, budgets, minor = False)
-    if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
-    elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
-    plt.ylabel("Error MSE" if GET_MSE else "Error")
-    plt.subplots_adjust(left = 0.1, right = 0.99, top = 0.99, bottom = 0.12)
-    if method == 'Gaussian': plt.subplots_adjust(left = 0.1)
-    if GET_MSE: plt.subplots_adjust(left = 0.115)
-    if SAVE_FIGS:
-        filename = "results/figs/SynthAdapt_with_approx"
-        filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
-        if GET_MSE: filename = filename[:-4]+"_MSE.pdf"
-        plt.savefig(filename)
-    else: plt.show()
+    # plt.figure(figsize = (6, 4))
+    # plt.axhline(y = 1, color = 'black', linestyle = '--')
+    # for idx in range(len(names)):
+    #     plt.plot(budgets, results[idx, :].tolist(), color = colors[idx], 
+    #              alpha = 0.9, marker = markers[idx], label = names[idx])
+    # plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')
+    # plt.xticks(budgets, budgets, minor = False)
+    # if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
+    # elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
+    # plt.ylabel("Error MSE" if GET_MSE else "Error")
+    # plt.subplots_adjust(left = 0.1, right = 0.99, top = 0.99, bottom = 0.12)
+    # if method == 'Gaussian': plt.subplots_adjust(left = 0.1)
+    # if GET_MSE: plt.subplots_adjust(left = 0.115)
+    # if SAVE_FIGS:
+    #     filename = "results/figs/SynthAdapt_with_approx"
+    #     filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
+    #     if GET_MSE: filename = filename[:-4]+"_MSE.pdf"
+    #     plt.savefig(filename)
+    # else: plt.show()
 
+# plotEg(1, 'Laplace')
 genRandomFunc(50)
-# for i in [1, 3, 5, 7, 9]:
-#     plotEg(i, 'Gaussian', eps = 1.0, plotBaseline = True, SAMPLE = 20)
 for i in range(2):
     expt('Laplace')
     expt('Gaussian')

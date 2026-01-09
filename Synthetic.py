@@ -4,13 +4,12 @@ from AdaptApprox import *
 
 repeat = 30
 SAVE_FIGS = True
-GET_MSE = False
 
-plt.rc('axes', titlesize = 12)
-plt.rc('axes', labelsize = 12)
-plt.rc('xtick', labelsize = 9)
-plt.rc('ytick', labelsize = 9)
-plt.rc('legend', fontsize = 10)
+plt.rc('axes', titlesize = 13)
+plt.rc('axes', labelsize = 13)
+plt.rc('xtick', labelsize = 10)
+plt.rc('ytick', labelsize = 10)
+plt.rc('legend', fontsize = 13)
 
 def getMSE(arr):
     return (arr**2).mean()
@@ -219,9 +218,6 @@ def expt(method):
                     results[i, k, j] = buffer[0]
                     buffer = buffer[1:]
             print("Complete.")
-    
-    if GET_MSE: results = results[:, 5:, :]
-    else: results = results[:, :5, :]
 
     names = []; colors = []; markers = []
     names.append("LS Approximation"); colors.append('tab:brown'); markers.append('P')
@@ -231,62 +227,43 @@ def expt(method):
     names.append("Baseline (smoothed)"); colors.append('tab:purple'); markers.append('d')
 
     budgets = EPS_LIST if method == 'Laplace' else RHO_LIST
-    _, axs = plt.subplots(2, 2, figsize = (8, 8), sharex = True, sharey = True)
-    for i in range(len(DEGREE_LIST)):
-        plt.subplot(2, 2, i+1)
-        plt.axhline(y = 1, color = 'black', linestyle = '--')
-        for j in range(1, len(names)):
-            plt.plot(budgets, results[i, j, :].tolist(), color = colors[j], 
-                    alpha = 0.9, marker = markers[j], label = names[j])
-        plt.title(f"Degree-{DEGREE_LIST[i]} Monomial Basis")
-        # plt.tick_params(labelleft = True)
-        plt.tick_params(labelbottom = True)
-        plt.legend(loc = 'upper right'); plt.xscale('log'); plt.yscale('log')
-        plt.xticks(budgets, budgets, minor = False)
-        if i//2 == 1:
-            if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
-            elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
-        if i%2 == 0: plt.ylabel("Error MSE" if GET_MSE else "Error")
-        plt.margins(y = 0.1)
-    plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.97, bottom = 0.06, 
-                        wspace = 0.04, hspace = 0.16)
+    height = 5.6 if method == 'Laplace' else 5.9
+    _, axs = plt.subplots(2, 4, figsize = (10, height), sharex = True, sharey = 'row')
+    for row in range(2):
+        for col in range(len(DEGREE_LIST)):
+            plt.subplot(2, 4, row*4+col+1)
+            plt.grid(True, alpha = 1.0, linestyle = ':')
+            plt.axhline(y = 1, color = 'black', linestyle = '--')
+            for idx in range(1, len(names)):
+                plt.plot(budgets, results[col, row*5+idx, :].tolist(), color = colors[idx], 
+                         alpha = 0.9, marker = markers[idx], label = names[idx])
+            if row == 0 and col == 0:
+                plt.legend(ncols = 4, loc = 'upper center' , bbox_to_anchor = (2, 1.35))
+            plt.xscale('log'); plt.yscale('log')
+            if row == 0: 
+                plt.title(f"Degree-{DEGREE_LIST[i]} Basis")
+                if col == 0:
+                    if method == 'Laplace': plt.ylabel("Error")
+                    else: plt.ylabel("Error", labelpad = -3)
+                if method == 'Gaussian': plt.margins(y = 0.15)
+            else:
+                plt.xticks(budgets, budgets, rotation = 90, minor = False) 
+                # axs[row, col].xaxis.set_minor_locator(plt.NullLocator())
+                if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
+                elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
+                if col == 0: plt.ylabel("Error MSE", labelpad = -3)
+            if col > 0: axs[row, col].tick_params(which = 'both', left = False)
+    plt.subplots_adjust(left = 0.057, right = 0.997, wspace = 0, hspace = 0)
+    if method == 'Laplace': plt.subplots_adjust(top = 0.88, bottom = 0.135)
+    else: plt.subplots_adjust(top = 0.88, bottom = 0.155)
     if SAVE_FIGS:
         filename = "results/figs/Synth"
         filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
-        if GET_MSE: filename = filename[:-4]+"_MSE.pdf"
-        plt.savefig(filename)
-    
-    _, axs = plt.subplots(2, 2, figsize = (8, 8), sharex = True, sharey = True)
-    for i in range(len(DEGREE_LIST)):
-        plt.subplot(2, 2, i+1)
-        plt.axhline(y = 1, color = 'black', linestyle = '--')
-        for j in range(len(names)):
-            plt.plot(budgets, results[i, j, :].tolist(), color = colors[j], 
-                    alpha = 0.9, marker = markers[j], label = names[j])
-        plt.title(f"Degree-{DEGREE_LIST[i]} Monomial Basis")
-        # plt.tick_params(labelleft = True)
-        plt.tick_params(labelbottom = True)
-        plt.legend(loc = 'upper right', fontsize = 9)
-        plt.xscale('log'); plt.yscale('log')
-        plt.xticks(budgets, budgets, minor = False)
-        if i//2 == 1:
-            if method == 'Laplace': plt.xlabel("Privacy Budget "+r"$\varepsilon$")
-            elif method == 'Gaussian': plt.xlabel("Privacy Budget "+r"$\rho$")
-        if i%2 == 0: plt.ylabel("Error MSE" if GET_MSE else "Error")
-    plt.subplots_adjust(left = 0.08, right = 0.99, top = 0.97, bottom = 0.06, 
-                        wspace = 0.04, hspace = 0.2)
-    if SAVE_FIGS:
-        filename = "results/figs/Synth_with_approx"
-        filename += "_GP.pdf" if method == 'Laplace' else "_CGP.pdf"
-        if GET_MSE: filename = filename[:-4]+"_MSE.pdf"
+        # if GET_MSE: filename = filename[:-4]+"_MSE.pdf"
         plt.savefig(filename)
     else: plt.show()
 
 # plotEg(1, 'Laplace')
 genRandomFunc(50)
-# for i in range(len(FUNC_LIST)):
-#     plotEg(i, 'Gaussian', eps = 0.1, plotBaseline = True, SAMPLE = 20)
-for i in range(2):
-    expt('Laplace')
-    expt('Gaussian')
-    GET_MSE = True
+expt('Laplace')
+expt('Gaussian')
