@@ -2,7 +2,7 @@ import os, sys, random, tqdm
 from PrivPwcApprox import *
 from AdaptApprox import *
 
-repeat = 50
+repeat = 30
 SAVE_FIGS = True
 GET_MSE = False
 
@@ -283,7 +283,7 @@ def expt(method):
     else: plt.show()
 
 # plotEg(1, 'Laplace')
-genRandomFunc(20)
+genRandomFunc(50)
 # for i in range(len(FUNC_LIST)):
 #     plotEg(i, 'Gaussian', eps = 0.1, plotBaseline = True, SAMPLE = 20)
 for i in range(2):

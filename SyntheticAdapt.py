@@ -2,7 +2,7 @@ import os, sys, random, tqdm
 from PrivPwcApprox import *
 from AdaptBasis import *
 
-repeat = 50
+repeat = 30
 SAVE_FIGS = True
 GET_MSE = False
 
@@ -227,7 +227,7 @@ def expt(method):
         plt.savefig(filename)
     else: plt.show()
 
-genRandomFunc(20)
+genRandomFunc(50)
 # for i in [1, 3, 5, 7, 9]:
 #     plotEg(i, 'Gaussian', eps = 1.0, plotBaseline = True, SAMPLE = 20)
 for i in range(2):
