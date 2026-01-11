@@ -4,12 +4,19 @@ logging.getLogger('matplotlib.pyplot').disabled = True
 logging.getLogger('matplotlib.font_manager').disabled = True
 logging.basicConfig(filename = 'info.log', filemode = 'w', level = logging.INFO)
 
+def get_sub_series(time_series,interval):
+    lidx = max(np.searchsorted(time_series[0], interval[0], side = 'right')-1, 0)
+    ridx = min(np.searchsorted(time_series[0], interval[1], side = 'left'), len(time_series)-1)
+    return [time_series[0][lidx:(ridx+1)], time_series[1][lidx:(ridx+1)]]
+
 def reduce_seg(func, interval, basis, degree, k0, k, total_eps, eps, beta, 
                method = 'Laplace', time_series = None, parallel = False):
     if k <= 0: return np.array(interval), total_eps
     breakpoints = np.linspace(interval[0], interval[1], (2**k)+1)
     solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
-    solver.fit(func, time_series, parallel)
+    sub_series = get_sub_series(time_series, interval)
+    solver.fit(func, sub_series, parallel)
+    # solver.fit(func, time_series, parallel)
     err = solver.eval('Approx')
     thresh = (2**(k-1))*solver.d
     if basis == 'Linear-2D': thresh *= 2
@@ -20,7 +27,7 @@ def reduce_seg(func, interval, basis, degree, k0, k, total_eps, eps, beta,
     elif method == 'Gaussian':
         noise = norm.rvs(scale = 1/np.sqrt(2*eps))
         thresh = (np.sqrt(2)-1)/np.sqrt(2) * np.sqrt(thresh/(2*total_eps))
-        thresh -= np.sqrt(2/eps) * (np.log(2)*k0-np.log(1/beta))
+        thresh -= np.sqrt(2/eps)*(np.log(2)*k0-np.log(1/beta))
     total_eps = total_eps-eps
     logging.info(f"ReduceSeg at interval {interval}:"+
                  f"B = {total_eps:.5f}, eps = {eps:.8f}, err = {err:.5f}, noise = {noise:.5f}, "+
@@ -56,10 +63,10 @@ def adaptive_approx(func, interval, basis = 'Polynomial', degree = 1,
         solver.fit(func, time_series, parallel)
         # if k_bar >= MAX_SEG: break
         v = laplace.rvs(scale = 3/eps0)
-        tau = (2**k_bar)*solver.d
+        tau = (2**k_bar)*solver.d/2#2 multiplied at next step
         if basis == 'Linear-2D': tau *= 2
         if method == 'Gaussian': tau = np.sqrt(tau)
-        tau = SVT_threshold_scale*tau/eps0
+        tau = SVT_threshold_scale*tau/(eps0*2)
         err = solver.eval('Approx')
         logging.info(f"SVT: k_bar = {k_bar}, tau = {tau}, err = {err:.8f}, w = {w:.5f}, v = {v:.5f}; Terminate? {tau-err+v >= w}.")
         if tau-err+v >= w: break
@@ -78,9 +85,11 @@ def adaptive_approx(func, interval, basis = 'Polynomial', degree = 1,
             for i in range(4):
                 pts, B = reduce_seg(func, (interval[0]+(interval[1]-interval[0])*i/4, interval[0]+(interval[1]-interval[0])*(i+1)/4), 
                                     basis, degree, k0, k_bar-2, B, eps/32, beta, method, time_series, parallel)
+                print('i: ',i,pts)
                 breakpoints = np.concatenate((breakpoints[:-1], pts))
             solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
             solver.fit(func, time_series, parallel)
     logging.info(f"Final breakpoints: {breakpoints}, remaining eps = {B:.8f}.")
 
+    print('k_bar', k_bar)
     return solver, B
