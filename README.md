@@ -1,108 +1,89 @@
-# Function Privatization under GP
+# Function Privatization in the Local Model
 
-This repository implements function privatization under GP metrics.
+This repository implements function privatization under geo-privacy metrics, and conducts empirical experiments on synthetic Gaussian curves, [CRAWDAD cab mobility dataset](https://ieee-dataport.org/open-access/crawdad-epflmobility), [PTB-XL ECG dataset](https://physionet.org/content/ptb-xl/1.0.3/). The implementation covers all mechanisms mentioned in the paper, including $\texttt{Project-and-Privatize}$, $`\texttt{PrivFuncSelect}`$, $\texttt{PrivFuncSeg}$, and baseline methods.
 
-The essential utilities are implemented in `PrivPwcApprox.py`, where the class $\texttt{PrivatePiecewiseApprox}$ encapsulates the functional least-squares solver along with the privatization mechanism.
+## Quick Start
 
-`AdaptiveApprox.py` implements the adaptive privatization mechanisms $\texttt{PrivFuncSeg}$ and $\texttt{ReduceSeg}$ mentioned in the paper. The detailed runtime figures and decisions are recorded in `info.log` during execution.
+**Dependencies.** We recommend Python 3.9+. Core functionality requires NumPy (≥ 1.21.0) for basic computations, SciPy (≥ 1.7.0) for numerical integration, CVXPY (≥ 1.7.3) for solving QPs, and pathos (≥ 0.3.4) for multiprocessing. Auxiliary functionality requires Matplotlib, pandas, and tqdm.
 
-## Implementation Details
+**Running the Full Experiment.** A shell script `expt.sh` is provided to run all experiments. The whole process normally takes 12 to 18 hours. Upon completion, the results will be stored in corresponding folders under `results/`. The numerical summaries will be generated under subfolders, and the figures will be plotted under `results/figs/`.
 
-A solver can be created with `PrivatePiecewiseApprox(interval, breakpoints, basis_type, degree, parallel)`, where the Boolean parameter `parallel` indicates whether enabling parallelism in preprocessing phase.
+**Our Experiment Results.** The results we used in our paper are uploaded to this repository under `results/`. This includes the raw output (archived as Zip files) and the figures generated (in corresponding folders under `results/figs/`).
+
+## Implementation Overview
+
+### Project-and-Privatize
+
+This core functionality is implemented in `PrivPwcApprox.py`, where the class $\texttt{PrivatePiecewiseApprox}$ encapsulates the functional least-squares solver along with the privatization mechanism.
+
+A solver can be created with `solver = PrivatePiecewiseApprox(interval, breakpoints, basis_type, degree, parallel)`, where the Boolean parameter $\texttt{parallel}$ indicates whether enabling parallelism in preprocessing phase.
 Supported basis include:
 
-- $\texttt{Polynomial}$: polynomial basis, with degree specified in `degree`. When degree is at most 2, the basis generated is orthonormal.
+- $\texttt{Polynomial}$: polynomial basis, with degree specified in $\texttt{degree}$. When degree is at most 2, the basis generated is orthonormal.
 - $\texttt{Linear-2D}$: 2D linear basis equivalent to $\phi_1(t)=(1,0)$, $\phi_2(t)=(t,0)$, $\phi_3(t)=(0,1)$, and $\phi_4(t)=(0,t)$; converted into orthonormal basis by default.
-- $\texttt{Fourier}$: partial Fourier basis $\phi_0(x)=1$ and $\phi_k(x)=\sin(2k\pi x),\phi_k'(x)=\cos(2k\pi x)$ for $k=1,2,\cdots,\text{degree}$.
-- $\texttt{Sinc}$: bounded sinc function $\phi_k(x)=\sin(\pi(x-k))/(\pi(x-k))$ for $k=1,2,\cdots,\text{degree}$., where the degree is also known as the shift; note that it has no value (0) outside `interval`.
+- $\texttt{Fourier}$: partial Fourier basis $\phi_0(x)=1$ and $\phi_k(x)=\sin(2k\pi x),\phi_k'(x)=\cos(2k\pi x)$ for $k=1,2,\cdots,\texttt{degree}$.
+- $\texttt{Sinc}$: bounded sinc function $\phi_k(x)=\sin(\pi(x-k))/(\pi(x-k))$ for $k=1,2,\cdots,\texttt{degree}$, where the degree is also known as the shift; note that it has no value (0) outside $\texttt{interval}$.
 - $\texttt{Sinc-unbounded}$: unbounded sinc function similar to above, but has value everywhere on $\mathbb{R}$; must be orthonormal.
 
-Use `fit(func)` to obtain least-squares functional approximation of a function `func`. For 2D function, to speed-up computation, convert `func` further into array `func_2D` of two scalar functions and call `fit(func, func_2D)`. The additional `parallel` parameter specifies whether enabling parallelism during approximation. The resulting approximation can be constructed using `createApprox()` method.
+The $\texttt{breakpoints}$ parameter above must be a sorted list, with the two values in $\texttt{interval}$ as its endpoints. On each sub-interval separated by these breakpoints, a set of basis specified above will be created. Note that $\texttt{degree}$ may also be a sorted list, and the basis created will only include those degrees specified in the list.
 
-To privatize the approximation, call `privatize(epsilon, method)`, where the mechanisms supported are `Laplace` and `Gaussian`.  The Laplace mechanism achieves $\varepsilon$-GP, while the Gaussian mechanism achieves $\varepsilon$-CGP. The privatized function can be obtained with `createPriv()`.
+A least-squares functional approximation of a function $\texttt{func}$ can be obtained via `solver.fit(func)`. For 2D function, to speed-up computation, we may convert $\texttt{func}$ further into array $\texttt{func}\_\texttt{2D}$ of two scalar functions and call `solver.fit(func, func_2D)`. An additional $\texttt{parallel}$ parameter can be added to specify whether enabling parallelism during approximation. The resulting approximation can be constructed via `solver.createApprox()`.
 
-The $l_2$-distance from the original function to the approximation and privatization can be measured through `eval(type)`. `type = 'Approx'` returns $||f-f_\text{approx}||$, and `type = 'Priv'` returns $||f-f_\text{priv}||$. Another method `evalPrivLoss()` measures $||f_\text{approx}-f_\text{priv}||$.
+To privatize the approximation, call `solver.privatize(eps, method)`, where the mechanisms supported are $\texttt{'Laplace'}$ and $\texttt{'Gaussian'}$.  The Laplace mechanism achieves $\varepsilon$-GP, while the Gaussian mechanism achieves $\varepsilon$-CGP. The privatized function can be obtained with `solver.createPriv()`.
 
-The adaptive approximation is called with `adaptive_approx(func, interval, basis, degree, epsilon, beta, method, func_2D, SVT_threshold_scale, parallel)`. Parameter `SVT_threshold_scale` controls the accuracy of the approximation, with the trade-off in execution time. All other parameters has the same meaning as described above.
+The $l_2$-distance from the original function to the approximation and privatization can be measured through `solver.eval(type)`. `type = 'Approx'` returns $||f-f_\text{approx}||$, and `type = 'Priv'` returns $||f-f_\text{priv}||$. Another method `solver.evalPrivLoss()` measures $||f_\text{approx}-f_\text{priv}||$.
 
-## Examples and Empirical Datasets
+To guarantee continuity of privatized curve, call `solver.smooth(method)`. Here the $\texttt{method}$ parameter can be either $\texttt{'CVXPY'}$ or $\texttt{'Sparse-KKT'}$. The former uses CVXPY to solve the QP, and the latter uses the sparse KKT method to numerical solve the QP. Normally, the latter would be more efficient and accurate. Note that this $\texttt{smooth}$ method will **overwrite** the noise generated by the previous $\texttt{privatize}$ method! Also, to measure $||f-f_\text{priv-cts}||$ or $||f_\text{approx}-f_\text{priv-cts}||$, call `solver.eval('Priv')` or `solver.evalPrivLoss()` **after** calling the $\texttt{smooth}$ method.
 
-`Gaussian.py` privides the example of privatizing the sum of two Gaussian curves. The basis used is the degree-3 polynomial basis and the privacy quota is $\varepsilon=0.5$.
+We added efficient integration for $\texttt{Linear-2D}$ basis and $\texttt{Sinc}$ basis based on purely arithmetic computations, so multiprocessing is not needed for these bases. For other bases, integration uses `scipy.integrate.quad`, and enabling multiprocessing is recommended.
 
-`Trigonometric.py` privides the example of privatizing the sum of two trigonometric functions. The basis used is the partial Fourier basis with degree 2 and the privacy quota is $\varepsilon=0.5$.
+### PrivFuncSelect and PrivFuncSeg
 
-The taxi trajectory dataset is under `cabspottingdata/` directory. `PreprocCabData.py` preprocesses the data by converting latitude and longitude into coordinates (with meter as unit) and removing erroneous datapoints. `SelectCabData.py` selects curves whose time range contains 8:00 ~ 20:00 everyday, and filters out those with less than 500 samples. `TaxiTrajectory.py` privatizes the selected curves with 2D linear basis, and record the $l_2$-losses.
+The adaptive basis selection mechanism $`\texttt{PrivFuncSelect}`$ is implemented in `AdaptiveBasis.py`. To apply it on a function $\texttt{func}$, call `adaptive_basis(func, interval, basis, eps, method)`, which returns a $\texttt{PrivatePiecewiseApprox}$ solver and a degree list. The solver returned already generates noises for privatization, but is not guaranteed to be continuous. The degree list returned indicates the basis selected.
 
-Directly calling `TaxiTrajectory.py` will execute in interactive mode, where one sample curve of 1000 points is privatized with $\varepsilon=0.01$.
+`AdaptiveApprox.py` implements the adaptive segmentation mechanism $\texttt{PrivFuncSeg}$ and its subroutine $\texttt{ReduceSeg}$ mentioned in the paper. The adaptive approximation is called with `adaptive_approx(func, interval, basis, degree, eps, beta, method)`, which returns a $\texttt{PrivatePiecewiseApprox}$ solver and remaining budget $B$. Note that the solver returned has **no** noise generated for privatization, meaning that we need to call `solver.privatize(eps = B, method)` immediately afterwards to privatize with privacy budget $B$.
 
-For batch experiment, add 3 arguments when calling the script: the privacy quota, the batch size, and the SVT threshold factor. Each curve is privatized and recorded for 20 times. The results will be stored under `results/TaxiTrajectory/taxi_{args}/` directory.
+For both adaptive mechanisms, the detailed runtime decisions of SVTs are recorded in `info.log` during execution.
+
+## Datasets and Experiment Scripts
+
+### Synthetic Gaussian Curves
+
+The experiment on synthetic Gaussian curves is implmented in `Synthetic.py` and `SyntheticAdapt.py`. Both script will randomly generate the same 50 synthetic Gaussianc curves with seed $42$, where each curve is a linear combination of 1 to 5 random Gaussian curves on intrerval $[0,100]$. `Synthetic.py` applies $\texttt{PrivFuncSeg}$ with polynomial basis of degree 1, 4, 8, 16. `SyntheticAdapt.py` adopts $\texttt{PrivFuncSelect}$.
+
+### CRAWDAD Cab Mobility Dataset
+
+The taxi trajectory dataset is located under `cabspottingdata/`. There are 536 trajectories in the dataset, each with the mobility information of a specific cab during a time period of 20 to 40 days.
+
+`PreprocCabData.py` preprocesses the data by converting latitude and longitude into coordinates (with meter as unit) and removing erroneous datapoints. `SelectCabData.py` truncates the curves by the 12-hour time window "8:00 ~ 20:00, 18 May, 2008", and filters out those with less than 500 samples. There will be 304 curves left, and each curve is considered as a 2D time series.
+
+`TaxiTrajectory.py` privatizes the selected curves with 2D linear basis, and record the $l_2$-losses. Directly calling `TaxiTrajectory.py` will execute in interactive mode, where one example curve of 100 points is privatized under GP with $\varepsilon=0.01$ budget. For batch experiment, add 3 arguments when calling the script: the privacy quota, the batch size, and the SVT threshold factor. Each curve is privatized and recorded for 30 times. The results will be stored under `results/TaxiTrajectory/taxi_{args}/` directory.
+
 ```
 python PreprocCabData.py
 python SelectCabData.py
 python TaxiTrajectory.py 0.01 1 > results/taxi_cmd.log
 ```
 
-The ECG dataset is under `ptb-xl/` directory. `ECG.py` loads the records and privatizes them with bounded Sinc basis. Here we use public info of average QRS interval length and scale the time by a factor of 80. Each ECG record consists of 1000 datapoints sampled at frequency 10 Hz, so each record spans 10 seconds (thus 800 after scaling). We split it to $m$ intervals, where each interval has bounded Sinc basis with shift $800/m$.
+### PTB-XL ECG Dataset
 
-Directly calling `ECG.py` will execute in interactive mode with $\varepsilon=1$, where the bounded Sinc basis (if used) has $m$ set to 100.
+The ECG dataset is located under `ptb-xl/`. Since we will only use the frist 100 records of 100 Hz frequency, we only need the records under `ptb-xl/records100/00000/` directory. The records are scaled to the unit of microvolt (μv). Here we use public info of average QRS interval length and scale the time by a factor of 80. Each ECG record consists of 1000 datapoints and spans 10 seconds (thus 800 seconds after scaling).
 
-For batch experiment, add 2 arguments when calling the script: the privacy quota and the batch size. When the batch size inputted is -1, unbounded Sinc basis will be applied; otherwise, corresponding bounded Sinc basis is used: given batch size $s\in\mathbb{N}^*$, the corresponding $m$ is $m=1000/s$. Each curve is privatized and recorded for 20 times. The results will be stored under `results/ECG/ECG_{args}/` directory.
+`ECG.py` loads the records and privatizes them with bounded/unbounded sinc basis. For bounded sinc basis, the time range is split into $m$ intervals, where each interval has bounded sinc basis with shift $800/m$. Directly calling `ECG.py` will execute in interactive mode with $\varepsilon=1$, where unbounded sinc basis is applied by default. For batch experiment, add two arguments when calling the script: the privacy quota and the batch size. When the batch size inputted is $-1$, unbounded sinc basis will be applied; otherwise, corresponding bounded sinc basis is used: given batch size $s\in\mathbb{N}^*$, the corresponding $m$ is $m=1000/s$. Each curve is privatized and recorded for 30 times. The results will be stored under `results/ECG/ECG_{args}/` directory.
+
 ```
-python ECG.py 1.0 5 > results/ECG_cmd.log
-python ECG.py 1.0 5 > results/ECG_cmd.log
+python ECG.py 1.0 20 > results/ECG_cmd.log
+python ECG.py 1.0 -1 > results/ECG_unbounded_cmd.log
 ```
-The first command splits into 200 intervals, where each interval is equipped with Sinc basis of shift 5.
-The second command splits into 50 intervals, where each interval is equipped with Sinc basis of shift 16.
 
-We added efficient integration for $\texttt{Linear-2D}$ basis and $\texttt{Sinc}$ basis based on purely arithmetic computations, so multiprocessing is not needed for these bases. For other bases, integration uses `scipy.integrate.quad`, and enabling multiprocessing is recommended.
+### Baseline Methods and Other Scripts
 
-Baseline is implemented in `Baseline.py`. It accepts three arguments: `Taxi` or `ECG` to specify the target dataset, a sample rate, and a window scale. The number of sample datapoints drawn is $(\texttt{sample rate})\times(\texttt{total num of datapoints})$, and the window size is $(\texttt{window scale})\times(\texttt{num of samples})$.
+The baseline methods for synthetic Gaussian curves are directly included in `Synthetic.py` and `SyntheticAdapt.py`. The number of sample used is $10,20,50,100$, and the smoothing window size is $0.05\times(\text{num of samples})$. Calling those scripts will run our mechanisms along with the baseline methods, and plot figures for comparison.
 
-After the experiment, use `ExptStats.py` with argument `Taxi` or `ECG` to generate summary statistics table for the datasets.
+Baseline methods for CRAWDAD dataset and PTB-XL dataset are implemented in `Baseline.py`. It accepts three arguments: $\texttt{Taxi}$ or $\texttt{ECG}$ to specify the target dataset, a sample rate, and a window scale. The number of sample datapoints drawn is $(\texttt{sample rate})\times(\texttt{total num of datapoints})$, and the window size is $(\texttt{window scale})\times(\texttt{num of samples})$.
 
-The shell script `expt.sh` runs all experiments with our algorithm and baseline, then generate all result statistics. 
+After the experiment, use `ExptStats.py` with argument $\texttt{Taxi}$ or $\texttt{ECG}$ to generate summary statistics table for the datasets.
 
-## Experiment Setup
+`ExptFigs.py` plots the line graphs of CRAWDAD dataset and PTB-XL dataset. It includes both $l_2$-error and MSE, and the baseline methods' results reported are the best among all choices of sample rate and window scale.
 
-### Taxi Trajectory Dataset
-
-**Preprocessing**
-
-- There are 536 trajectories in the dataset, each with the mobility information of a specific cab during a time period of 20 to 40 days.
-- We first split the trajectories to curves by date (1 curve represents 1 cab's data in 1 day), and select the observation window "8:00 ~ 20:00". Any curve that does not fully cover this window is removed.
-- We truncate each curve to this window with interpolation at endpoints: fix endpoints at 8:00 and 20:00, decide the coordinates at the endpoints by interpolating the two adjacent datapoints. Thus each curve starts exactly at 8:00 and ends exactly at 20:00, spaning 12 hours = 43200 seconds.
-- To ensure sample size, after truncating each curve to 8:00 ~ 20:00, we remove all curves with less than 500 datapoints.
-- There are 5102 curves remaining, each with 500 to 850 datapoints.
-
-**Experiment**
-
-- Our algorithm include three phases: (1) adaptive least-squares approximation (with SVT threshold exactly $\tau_j=2^j/(\epsilon/4)$), (2) privatize by adding noises to the coefficients, and (3) smooth (ensure continuity) by solving a QP.
-- The baseline has two parameters, $\texttt{sample rate}$ and $\texttt{window scale}$, and has two phases: (1) add Laplace noises to the sample and directly connect these noised samples to form privatized curve, and (2) take window average of the noised samples, and connect those "smoothed" samples to form a privatized curve.
-- For each choice of $\varepsilon=0.001, 0.003, 0.01, 0.03, 0.1$, run our algorithm ((1)+(2)+(3)) on each curve for 20 times, and record approximation error, privatization error, and smoothed privatization error.
-- For each choice of $\varepsilon=0.001, 0.003, 0.01, 0.03, 0.1$ and all 4 combinations of $\texttt{sample rate}\in\{0.1,0.2\}$ and $\texttt{window scale}=\{0.05,0.1\}$,  run the baseline ((1)+(2)) for 20 times on each curve and record errors.
-
-**Evaluation**
-
-For a specific curve, for each algorithm, remove the 4 records with 2 largest and 2 smallest privatization error (so 20% records removed), then take average of the remaining 16 records. The average errors are considered as the empirical mean utility loss aquired by this algorithm on this curve.
-
-For each algorithm, take average of its average errors aquired on all curves in the dataset, and report the empirical mean utility loss of it on the whole dataset.
-
-### ECG Dataset
-
-**Preprocessing**
-
-- There are 21799 records in the dataset, each represents the ECG record of 10 seconds. The record consists of 12 curves, and we only consider the second curve, ECG lead II, as it is the most representative one (so each record contains only 1 curve).
-- Each of those records contains 1000 datapoints, sampleded at 100 Hz.
-- The time range of each record is 10 seconds, and we multiply the time by 80 (time range becomes 800 units now) to match the QRS interval with the shape of standard sinc function.
-- The amplitude of the records are measured in millivolt (mV), and we converted it to microvolt ($\mu$V).
-
-**Experiment**
-
-- The choices of $\varepsilon$ are $0.25, 0.5, 1.0, 2.0, 4.0$.
-- Our algorithm include three phases: (1) piecewise least-squares approximation with 50 pieces, where each piece is fitted with basis $\{\text{sinc}(t-k)\}_{k=0}^{15}$, (2) privatize by adding noises to the coefficients, and (3) smooth (ensure continuity) by solving a QP.
-- The baseline and its experiment are exactly the same as those above.
-- The experiment on our algorithm is almost identical to that above, except that we only run (1) once and run (2)+(3) for 20 times. This is valid because the least-squares approximation result remains the same with the same set of breakpoints and basis.
-
-**Evaluation**
-
-Identical to that above.
+The shell script `expt.sh` runs all experiments with our algorithm and baseline methods, generate result statistics, and plot line graphs for comparisons.
