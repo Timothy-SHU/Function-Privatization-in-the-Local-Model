@@ -241,7 +241,7 @@ def expt(method):
                 plt.legend(ncols = 4, loc = 'upper center' , bbox_to_anchor = (2, 1.35))
             plt.xscale('log'); plt.yscale('log')
             if row == 0: 
-                plt.title(f"Degree-{DEGREE_LIST[i]} Basis")
+                plt.title(f"Degree-{DEGREE_LIST[col]} Basis")
                 if col == 0:
                     if method == 'Laplace': plt.ylabel("Error")
                     else: plt.ylabel("Error", labelpad = -3)
