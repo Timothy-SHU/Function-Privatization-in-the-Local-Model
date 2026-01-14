@@ -137,14 +137,14 @@ class PrivatePiecewiseApprox:
             else:
                 integral = np.sin(np.pi*(a2-a1)) * (sici(2*np.pi*(r-a2))[0] + sici(2*np.pi*(r-a1))[0])
                 # integral -= np.cos(np.pi*(a2-a1)) * (np.log(np.abs(r-a1)/np.abs(r-a2))
-                #                                     + sici(2*np.pi*(r-a2))[1] - sici(2*np.pi*(r-a1))[1])
+                #             + sici(2*np.pi*(r-a2))[1] - sici(2*np.pi*(r-a1))[1])
                 if r == a1: integral += np.cos(np.pi*(a2-a1)) * (np.euler_gamma+np.log(2*np.pi))
                 else: integral += np.cos(np.pi*(a2-a1)) * (sici(2*np.pi*(r-a1))[1] - np.log(np.abs(r-a1)))
                 if r == a2: integral -= np.cos(np.pi*(a2-a1)) * (np.euler_gamma+np.log(2*np.pi))
                 else: integral -= np.cos(np.pi*(a2-a1)) * (sici(2*np.pi*(r-a2))[1] - np.log(np.abs(r-a2)))
                 integral -= np.sin(np.pi*(a2-a1)) * (sici(2*np.pi*(l-a2))[0] + sici(2*np.pi*(l-a1))[0])
                 # integral += np.cos(np.pi*(a2-a1)) * (np.log(np.abs(l-a1)/np.abs(l-a2))
-                #                                     + sici(2*np.pi*(l-a2))[1] - sici(2*np.pi*(l-a1))[1])
+                #             + sici(2*np.pi*(l-a2))[1] - sici(2*np.pi*(l-a1))[1])
                 if l == a1: integral -= np.cos(np.pi*(a2-a1)) * (np.euler_gamma+np.log(2*np.pi))
                 else: integral -= np.cos(np.pi*(a2-a1)) * (sici(2*np.pi*(l-a1))[1] - np.log(np.abs(l-a1)))
                 if l == a2: integral += np.cos(np.pi*(a2-a1)) * (np.euler_gamma+np.log(2*np.pi))
@@ -200,13 +200,16 @@ class PrivatePiecewiseApprox:
         
         if time_series != None:
             self.funcSqrInt = 0
-            for i in range(len(self.ts_t)-1):
-                l = self.ts_t[i]; r = self.ts_t[i+1]
+            lidx = max(np.searchsorted(self.ts_t, self.l, side = 'right')-1, 0)
+            ridx = min(np.searchsorted(self.ts_t, self.r, side = 'left'), len(self.ts_t)-1)
+            for i in range(lidx, ridx):
+                l = max(self.l, self.ts_t[i])
+                r = min(self.r, self.ts_t[i+1])
                 if l >= r: continue
                 if self.basis_type == 'Linear-2D':
                     for j in range(0, 2):
-                        k = (self.ts_val[i+1][j]-self.ts_val[i][j])/(r-l)
-                        b = self.ts_val[i][j]-k*l
+                        k = (self.ts_val[i+1][j]-self.ts_val[i][j])/(self.ts_t[i+1]-self.ts_t[i])
+                        b = self.ts_val[i][j]-k*self.ts_t[i]
                         # integrate (kt+b)^2 on [l, r]
                         # \int k^2t^2+2kbt+b^2 = 1/3*k^2t^3+kbt^2+b^2*t
                         self.funcSqrInt += 1/3*(k**2)*(r**3)+k*b*(r**2)+(b**2)*r

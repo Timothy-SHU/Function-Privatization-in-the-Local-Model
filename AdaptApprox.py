@@ -4,19 +4,11 @@ logging.getLogger('matplotlib.pyplot').disabled = True
 logging.getLogger('matplotlib.font_manager').disabled = True
 logging.basicConfig(filename = 'info.log', filemode = 'w', level = logging.INFO)
 
-def get_sub_series(time_series,interval):
-    if time_series == None: return None
-    lidx = max(np.searchsorted(time_series[0], interval[0], side = 'right')-1, 0)
-    ridx = min(np.searchsorted(time_series[0], interval[1], side = 'left'), len(time_series)-1)
-    return [time_series[0][lidx:(ridx+1)], time_series[1][lidx:(ridx+1)]]
-
 def reduce_seg(func, interval, basis, degree, k0, k, total_eps, eps, beta, 
                method = 'Laplace', time_series = None, parallel = False):
     if k <= 0: return np.array(interval), total_eps
     breakpoints = np.linspace(interval[0], interval[1], (2**k)+1)
     solver = PrivatePiecewiseApprox(interval, breakpoints, basis, degree, parallel = parallel)
-    # sub_series = get_sub_series(time_series, interval)
-    # solver.fit(func, sub_series, parallel)
     solver.fit(func, time_series, parallel)
     err = solver.eval('Approx')
     thresh = (2**(k-1))*solver.d
