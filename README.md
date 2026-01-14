@@ -6,11 +6,18 @@ This repository implements function privatization under geo-privacy metrics, and
 
 **Dependencies.** We recommend Python 3.9+. Core functionality requires NumPy (≥ 1.21.0) for basic computations, SciPy (≥ 1.7.0) for numerical integration, CVXPY (≥ 1.7.3) for solving QPs, and pathos (≥ 0.3.4) for multiprocessing. Auxiliary functionality requires Matplotlib, pandas, and tqdm.
 
-**Running the Full Experiment.** A shell script `expt.sh` is provided to run all experiments. The whole process normally takes 12 to 18 hours. Upon completion, the results will be stored in corresponding folders under `results/`. The numerical summaries will be generated under subfolders, and the figures will be plotted under `results/figs/`.
+**Downloading Datasets.** Please download the [CRAWDAD cab mobility dataset](https://ieee-dataport.org/open-access/crawdad-epflmobility) and decompress everything into `cabspottingdata/`. For the [PTB-XL ECG dataset](https://physionet.org/content/ptb-xl/1.0.3/), please download the `records100/00000/` directory of the dataset into `ptb-xl/records100/00000/`, and it is recommended to be done via AWS CLI.
+
+```
+tar -xvzf cabspottingdata.tar.gz cabspottingdata/
+aws s3 sync --no-sign-request s3://physionet-open/ptb-xl/1.0.3/records100/00000/ ptb-xl/records100/00000/
+```
+
+**Running the Full Experiment.** A shell script `expt.sh` is provided to run all experiments. The whole process normally takes 12 to 18 hours. Upon completion, the results will be stored in corresponding folders under `results/`. The numerical summaries will be generated under sub-folders, and the figures will be plotted under `results/figs/`.
 
 **Our Experiment Results.** The results we used in our paper are uploaded to this repository under `results/`. This includes the raw output (archived as Zip files) and the figures generated (in corresponding folders under `results/figs/`).
 
-## Implementation Overview
+## Core Functionality Overview
 
 ### Project-and-Privatize
 

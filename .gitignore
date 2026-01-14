@@ -1,9 +1,5 @@
-cabspottingdata/trajectory.pkl
-cabspottingdata/trajectory_selected.pkl
-
-ptb-xl/records100/*
-!ptb-xl/records100/00000
-ptb-xl/records500/*
+ptb-xl/*
+cabspottingdata/*
 
 results/Synth/
 results/TaxiTrajectory/
