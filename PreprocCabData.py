@@ -16,10 +16,10 @@ def convert_coord(lat, long):
 filename_list = []
 x_list = []; y_list = []; t_list = []
 for filename in tqdm(sorted(os.listdir("cabspottingdata"))):
-    if filename != "_cabs.txt" and filename != "README" and filename != "trajectory.pkl":
+    if filename != "_cabs.txt" and filename != "README" and filename != "trajectory.pkl" and filename != ".gitignore":
         track = pd.read_csv("cabspottingdata/"+filename, header = None, sep = '\s+')
         filename_list.append(filename)
-        print(f"Processing {filename}...")
+        # print(f"Processing {filename}...")
         flag = True 
         for i in reversed(range(len(track))):
             lat = track.iloc[i, 0]
