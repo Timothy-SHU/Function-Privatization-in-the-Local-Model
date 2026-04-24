@@ -5,9 +5,9 @@ SAVE_FIGS = True
 
 plt.rc('axes', titlesize = 11)
 plt.rc('axes', labelsize = 11)
-plt.rc('xtick', labelsize = 9)
-plt.rc('ytick', labelsize = 10)
-plt.rc('legend', fontsize = 10)
+plt.rc('xtick', labelsize = 11)
+plt.rc('ytick', labelsize = 11)
+plt.rc('legend', fontsize = 11)
 
 def genNoise(method, scale, dim = 1):
     if method == 'Laplace':
@@ -42,7 +42,7 @@ def plotFig(t, x, y, eps, k_bar, filename):
     plt.plot(smooth_t_x, smooth_t_y, color = 'tab:blue', #ls = '--', 
              alpha = 0.9, label = "privatized")
     plt.legend(framealpha = 0.4, frameon = False, fancybox = True)
-    plt.subplots_adjust(left = 0.115, right = 0.99, top = 0.98, bottom = 0.07)
+    plt.subplots_adjust(left = 0.12, right = 0.99, top = 0.98, bottom = 0.07)
     if SAVE_FIGS: plt.savefig(f"results/figs/ReduceSeg/{filename}_without.pdf")
     else: plt.show()
     plt.close()
@@ -68,7 +68,7 @@ def plotFig(t, x, y, eps, k_bar, filename):
     plt.plot(smooth_t_x, smooth_t_y, color = 'tab:blue', 
              alpha = 0.9, label = "privatized")
     plt.legend(framealpha = 0.4, frameon = False, fancybox = True)
-    plt.subplots_adjust(left = 0.115, right = 0.99, top = 0.98, bottom = 0.07)
+    plt.subplots_adjust(left = 0.12, right = 0.99, top = 0.98, bottom = 0.07)
     if SAVE_FIGS: plt.savefig(f"results/figs/ReduceSeg/{filename}_with.pdf")
     else: plt.show()
     plt.close()
