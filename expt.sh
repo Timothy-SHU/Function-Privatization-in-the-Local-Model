@@ -1,3 +1,4 @@
+mkdir results
 echo "Preprocessing taxi trajectory data..."
 python PreprocCabData.py > /dev/null
 python SelectCabData.py > /dev/null
@@ -38,4 +39,8 @@ echo "Collecting ECG result statistics..."
 python ExptStats.py ECG Laplace > results/ECGSummary_GP.txt
 python ExptStats.py ECG Gaussian > results/ECGSummary_CGP.txt
 
+mkdir results/figs
 python ExptFigs.py
+
+python Synthetic.py
+python SyntheticAdapt.py
